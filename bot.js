@@ -49,14 +49,16 @@ class LuisBot {
 
                 // // build buttons to display.
                 const buttons = [
-                { type: ActionTypes.ImBack, title: '1. Inline Attachment', value: '1' },
-                { type: ActionTypes.ImBack, title: '2. Internet Attachment', value: '2' },
-                { type: ActionTypes.ImBack, title: '3. Uploaded Attachment', value: '3' }
+                { type: ActionTypes.ImBack, title: '1. Mexicain', value: '1' },
+                { type: ActionTypes.ImBack, title: '2. Chinois', value: '2' },
+                { type: ActionTypes.ImBack, title: '3. Thailandais', value: '3' }
+                { type: ActionTypes.ImBack, title: '4. Italien', value: '4' }
+                { type: ActionTypes.ImBack, title: '5. Francais', value: '5' }
                 ];
 
                 // // construct hero card.
                 const card = CardFactory.heroCard('', undefined,
-                buttons, { text: 'You can upload an image or select one of the following choices.' });
+                buttons, { text: 'Quel restaurant voulez-vous?' });
 
                 // // add card to Activity.
                 reply.attachments = [card];
