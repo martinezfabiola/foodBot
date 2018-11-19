@@ -52,8 +52,6 @@ class LuisBot {
                 { type: ActionTypes.ImBack, title: '1. Mexicain', value: '1' },
                 { type: ActionTypes.ImBack, title: '2. Chinois', value: '2' },
                 { type: ActionTypes.ImBack, title: '3. Thailandais', value: '3' }
-                { type: ActionTypes.ImBack, title: '4. Italien', value: '4' }
-                { type: ActionTypes.ImBack, title: '5. Francais', value: '5' }
                 ];
 
                 // // construct hero card.
