@@ -183,14 +183,14 @@ async confirmAgePrompt(step) {
     const user = await this.userProfile.get(step.context, {});
     user.name = step.result;
     await this.userProfile.set(step.context, user);
-    await step.prompt(CONFIRM_PROMPT, 'Do you want to give your age?', ['yes', 'no']);
+    await step.prompt(CONFIRM_PROMPT, 'Do you know what you want to eat ?', ['yes', 'no']);
 }
 
 // This step checks the user's response - if yes, the bot will proceed to prompt for age.
 // Otherwise, the bot will skip the age step.
 async promptForAge(step) {
     if (step.result && step.result.value === 'yes') {
-        return await step.prompt(AGE_PROMPT, `What is your age?`,
+        return await step.prompt(AGE_PROMPT, `Tell me what ?`,
             {
                 retryPrompt: 'Sorry, please specify your age as a positive number or say cancel.'
             }
@@ -207,9 +207,31 @@ async captureAge(step) {
         user.age = step.result;
         await this.userProfile.set(step.context, user);
         await step.context.sendActivity(`I will remember that you are ${ step.result } years old.`);
-    } else {
-        await step.context.sendActivity(`No age given.`);
-    }
+    } else {// si l'user ne sait pas quelle genre de food il veut
+
+            const { ActionTypes, ActivityTypes, CardFactory } = require('botbuilder');
+
+            const reply = { type: ActivityTypes.Message };
+
+            // // build buttons to display.
+            const buttons = [
+            { type: ActionTypes.ImBack, title: '1. European', value: '1' },
+            { type: ActionTypes.ImBack, title: '2. Chinese', value: '2' },
+            { type: ActionTypes.ImBack, title: '3. Other', value: '3' }
+            ];
+
+            // // construct hero card.
+            const card = CardFactory.heroCard('', undefined,
+            buttons, { text: 'What type of restaurant do you want ?' });
+
+            // // add card to Activity.
+            reply.attachments = [card];
+
+            // // Send hero card to the user.
+            await step.context.sendActivity(reply);
+
+
+        }
     return await step.endDialog();
 }
 
