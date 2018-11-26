@@ -12,9 +12,9 @@
         {
             "type":"luis",
             "name":"test",
-            "appId":"3a380f6b-2416-4a64-9e8b-3d96d4f0e1a5",
+            "appId":"69046f36-76bc-42ba-b217-ba204de625bf",
             "version":"0.1",
-            "authoringKey":"753c3d3514fa4bb6b580a5f0599583ba",
+            "authoringKey":"328c5c16f23b4826b9f825e61b00d53a",
             "region":"westus",
             "id":"2"
         }

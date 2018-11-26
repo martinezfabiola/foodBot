@@ -7,6 +7,10 @@ const { BotFrameworkAdapter } = require('botbuilder');
 const { BotConfiguration } = require('botframework-config');
 const { LuisBot } = require('./bot');
 
+// Import required bot services. See https://aka.ms/bot-services to learn more about the different part of a bot.
+const {ConversationState, MemoryStorage, UserState } = require('botbuilder');
+
+
 // Read botFilePath and botFileSecret from .env file.
 // Note: Ensure you have a .env file and include botFilePath and botFileSecret.
 const ENV_FILE = path.join(__dirname, '.env');
@@ -71,9 +75,17 @@ adapter.onTurnError = async(turnContext, error) => {
 };
 
 // Create the LuisBot.
+// Define the state store for your bot. See https://aka.ms/about-bot-state to learn more about using MemoryStorage.
+// A bot requires a state storage system to persist the dialog and user state between messages.
+const memoryStorage = new MemoryStorage();
+
+// Create conversation state with in-memory storage provider.
+const conversationState = new ConversationState(memoryStorage);
+const userState = new UserState(memoryStorage);
+
 let bot;
 try {
-    bot = new LuisBot(luisApplication, luisPredictionOptions);
+    bot = new LuisBot(luisApplication, luisPredictionOptions, conversationState, userState);
 } catch (err) {
     console.error(`[botInitializationError]: ${ err }`);
     process.exit();

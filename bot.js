@@ -8,6 +8,15 @@ const { ChoicePrompt, DialogSet, NumberPrompt, TextPrompt, WaterfallDialog } = r
 
 const { ActionTypes, ActivityTypes } = require('botbuilder');
 
+const DIALOG_STATE_PROPERTY = 'dialogState';
+const USER_PROFILE_PROPERTY = 'user';
+
+const WHO_ARE_YOU = 'who_are_you';
+const HELLO_USER = 'hello_user';
+
+const NAME_PROMPT = 'name_prompt';
+const CONFIRM_PROMPT = 'confirm_prompt';
+const AGE_PROMPT = 'age_prompt';
 
 /**
  * A simple bot that responds to utterances with answers from the Language Understanding (LUIS) service.
@@ -19,9 +28,50 @@ class LuisBot {
      * @param {LuisApplication} luisApplication The basic configuration needed to call LUIS. In this sample the configuration is retrieved from the .bot file.
      * @param {LuisPredictionOptions} luisPredictionOptions (Optional) Contains additional settings for configuring calls to LUIS.
      */
-    constructor(application, luisPredictionOptions, includeApiResults) {
+    constructor(application, luisPredictionOptions, conversationState, userState) {
+
         this.luisRecognizer = new LuisRecognizer(application, luisPredictionOptions, true);
+
+        // Create a new state accessor property. See https://aka.ms/about-bot-state-accessors to learn more about bot state and state accessors.
+        this.conversationState = conversationState;
+        this.userState = userState;
+
+        this.dialogState = this.conversationState.createProperty(DIALOG_STATE_PROPERTY);
+
+        this.userProfile = this.userState.createProperty(USER_PROFILE_PROPERTY);
+
+        this.dialogs = new DialogSet(this.dialogState);
+
+        // Add prompts that will be used by the main dialogs.
+        this.dialogs.add(new TextPrompt(NAME_PROMPT));
+        this.dialogs.add(new ChoicePrompt(CONFIRM_PROMPT));
+        this.dialogs.add(new NumberPrompt(AGE_PROMPT, async (prompt) => {
+            if (prompt.recognized.succeeded) {
+                if (prompt.recognized.value <= 0) {
+                    await prompt.context.sendActivity(`Your age can't be less than zero.`);
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+            return false;
+        }));
+
+        // Create a dialog that asks the user for their name.
+        this.dialogs.add(new WaterfallDialog(WHO_ARE_YOU, [
+            this.promptForName.bind(this),
+            this.confirmAgePrompt.bind(this),
+            this.promptForAge.bind(this),
+            this.captureAge.bind(this)
+        ]));
+
+        // Create a dialog that displays a user name after it has been collected.
+        this.dialogs.add(new WaterfallDialog(HELLO_USER, [
+            this.displayProfile.bind(this)
+        ]));
     }
+
+
 
 
     /**
@@ -30,7 +80,43 @@ class LuisBot {
      * response, with no stateful conversation.
      * @param {TurnContext} turnContext A TurnContext instance, containing all the data needed for processing the conversation turn.
      */
-    async onTurn(turnContext) {
+
+     async onTurn(turnContext) {
+     if (turnContext.activity.type === ActivityTypes.Message) {
+         // Create a dialog context object.
+         const dc = await this.dialogs.createContext(turnContext);
+
+         const utterance = (turnContext.activity.text || '').trim().toLowerCase();
+
+         // ...
+         // If the bot has not yet responded, continue processing the current dialog.
+         await dc.continueDialog();
+
+         // Start the sample dialog in response to any other input.
+         if (!turnContext.responded) {
+             const user = await this.userProfile.get(dc.context, {});
+             if (user.name) {
+                 await dc.beginDialog(HELLO_USER);
+             } else {
+                 await dc.beginDialog(WHO_ARE_YOU);
+             }
+         }
+     } else if (turnContext.activity.type === ActivityTypes.ConversationUpdate &&
+         turnContext.activity.recipient.id !== turnContext.activity.membersAdded[0].id) {
+         // If the Activity is a ConversationUpdate, send a greeting message to the user.
+         await turnContext.sendActivity('Welcome to our FoodBot ! Send me a message and I will try to predict your intent to find a restaurant ');
+     }
+
+     // ...
+     // Save changes to the user state.
+     await this.userState.saveChanges(turnContext);
+
+     // End this turn by saving changes to the conversation state.
+     await this.conversationState.saveChanges(turnContext);
+ }
+
+  /*
+    async promptFood(turnContext) {
         // By checking the incoming Activity type, the bot only calls LUIS in appropriate cases.
         if (turnContext.activity.type === ActivityTypes.Message) {
             // Perform a call to LUIS to retrieve results for the user's message.
@@ -39,9 +125,12 @@ class LuisBot {
             // Since the LuisRecognizer was configured to include the raw results, get the `topScoringIntent` as specified by LUIS.
             const topIntent = results.luisResult.topScoringIntent;
 
-            if (topIntent.intent !== 'None') {
-                await turnContext.sendActivity(`LUIS Top Scoring Intent: ${ topIntent.intent }, Score: ${ topIntent.score }`);
-            } else {
+            if (topIntent.intent == 'FindARestaurant') {
+                await turnContext.sendActivity(`LUIS Top Scoring Intent OK`);
+            } else if (topIntent.intent !== 'None') {
+              await turnContext.sendActivity(`LUIS Top Scoring Intent: ${ topIntent.intent }, Score: ${ topIntent.score }`);
+            }
+            else {
 
                 const { ActionTypes, ActivityTypes, CardFactory } = require('botbuilder');
 
@@ -74,12 +163,69 @@ class LuisBot {
         } else if (turnContext.activity.type === ActivityTypes.ConversationUpdate &&
             turnContext.activity.recipient.id !== turnContext.activity.membersAdded[0].id) {
             // If the Activity is a ConversationUpdate, send a greeting message to the user.
-            await turnContext.sendActivity('Welcome to the NLP with LUIS sample! Send me a message and I will try to predict your intent.');
+            await turnContext.sendActivity('Welcome to our FoodBot ! Send me a message and I will try to predict your intent to find a restaurant ');
         } else if (turnContext.activity.type !== ActivityTypes.ConversationUpdate) {
             // Respond to all other Activity types.
             await turnContext.sendActivity(`[${ turnContext.activity.type }]-type activity detected.`);
         }
     }
+    */
+
+
+
+// This step in the dialog prompts the user for their name.
+async promptForName(step) {
+    return await step.prompt(NAME_PROMPT, `What is your name, human?`);
+}
+
+// This step captures the user's name, then prompts whether or not to collect an age.
+async confirmAgePrompt(step) {
+    const user = await this.userProfile.get(step.context, {});
+    user.name = step.result;
+    await this.userProfile.set(step.context, user);
+    await step.prompt(CONFIRM_PROMPT, 'Do you want to give your age?', ['yes', 'no']);
+}
+
+// This step checks the user's response - if yes, the bot will proceed to prompt for age.
+// Otherwise, the bot will skip the age step.
+async promptForAge(step) {
+    if (step.result && step.result.value === 'yes') {
+        return await step.prompt(AGE_PROMPT, `What is your age?`,
+            {
+                retryPrompt: 'Sorry, please specify your age as a positive number or say cancel.'
+            }
+        );
+    } else {
+        return await step.next(-1);
+    }
+}
+
+// This step captures the user's age.
+async captureAge(step) {
+    const user = await this.userProfile.get(step.context, {});
+    if (step.result !== -1) {
+        user.age = step.result;
+        await this.userProfile.set(step.context, user);
+        await step.context.sendActivity(`I will remember that you are ${ step.result } years old.`);
+    } else {
+        await step.context.sendActivity(`No age given.`);
+    }
+    return await step.endDialog();
+}
+
+// This step displays the captured information back to the user.
+async displayProfile(step) {
+    const user = await this.userProfile.get(step.context, {});
+    if (user.age) {
+        await step.context.sendActivity(`Your name is ${ user.name } and you are ${ user.age } years old.`);
+    } else {
+        await step.context.sendActivity(`Your name is ${ user.name } and you did not share your age.`);
+    }
+    return await step.endDialog();
+}
+
+
+
 }
 
 module.exports.LuisBot = LuisBot;
