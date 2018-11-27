@@ -206,10 +206,25 @@ async promptForFood(step) {
 // This step captures the user's age.
 async captureAge(step) {
     const user = await this.userProfile.get(step.context, {});
+
+    // Perform a call to LUIS to retrieve results for the user's message.
+    const results = await this.luisRecognizer.recognize(step.context);
+
+    // Since the LuisRecognizer was configured to include the raw results, get the `topScoringIntent` as specified by LUIS.
+    const topIntent = results.luisResult.topScoringIntent;
+
     if (step.result !== -1) {
         user.food = step.result;
         await this.userProfile.set(step.context, user);
-        await step.context.sendActivity(`I will remember that you want this kind of food :  ${ step.result } `);
+
+        if (topIntent.intent == 'FindARestaurant') {
+            await step.context.sendActivity(`LUIS Top Scoring Intent OK`);
+        }
+        else if (topIntent.intent !== 'None') {
+            await step.context.sendActivity(`LUIS Top Scoring Intent: ${ topIntent.intent }, Score: ${ topIntent.score }`);
+        }
+
+        // await step.context.sendActivity(`I will remember that you want this kind of food :  ${ step.result } `);
     } else {// si l'user ne sait pas quelle genre de food il veut
 
             const { ActionTypes, ActivityTypes, CardFactory } = require('botbuilder');
