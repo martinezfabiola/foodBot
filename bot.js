@@ -248,7 +248,6 @@ async captureAge(step) {
             // // Send hero card to the user.
             await step.context.sendActivity(reply);
 
-
         }
     return await step.endDialog();
 }
@@ -259,7 +258,22 @@ async displayProfile(step) {
     if (user.food) {
         await step.context.sendActivity(`Your name is ${ user.name } and you would like this kind of food : ${ user.food }.`);
     } else {
-        await step.context.sendActivity(`Your name is ${ user.name } and you did not share your age.`);
+      const user = await this.userProfile.get(step.context, {});
+
+      //await step.context.sendActivity(`[${ step.context.activity.text }]-type activity detected.`);
+
+      if (step.context.activity.text == 1) {
+        user.food = "European";
+        await this.userProfile.set(step.context, user);
+      }  else if (step.context.activity.text == 2) {
+        user.food = "Chinese";
+        await this.userProfile.set(step.context, user);
+      } else {
+        user.food = "Other";
+        await this.userProfile.set(step.context, user);
+      }
+
+      await step.context.sendActivity(`Your name is ${ user.name } and you would like this kind of food : ${ user.food }.`);
     }
     return await step.endDialog();
 }
