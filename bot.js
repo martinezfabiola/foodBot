@@ -212,16 +212,21 @@ async captureAge(step) {
 
     // Since the LuisRecognizer was configured to include the raw results, get the `topScoringIntent` as specified by LUIS.
     const topIntent = results.luisResult.topScoringIntent;
+    const topEntity = results.luisResult.entities[0];
 
     if (step.result !== -1) {
-        user.food = step.result;
-        await this.userProfile.set(step.context, user);
 
-        if (topIntent.intent == 'FindARestaurant') {
-            await step.context.sendActivity(`LUIS Top Scoring Intent OK`);
+        if (topIntent.intent == 'ChooseTypeOfFood') {
+            user.food = topEntity.entity;
+            await this.userProfile.set(step.context, user); 
+
+            await step.context.sendActivity(`Entity: ${topEntity.entity}`);
+            await step.context.sendActivity(`I'm going to find the restaurant for you`);
         }
         else if (topIntent.intent !== 'None') {
-            await step.context.sendActivity(`LUIS Top Scoring Intent: ${ topIntent.intent }, Score: ${ topIntent.score }`);
+            user.food = step.result;
+            await this.userProfile.set(step.context, user);
+            await step.context.sendActivity(`I didn't understand what you just said to me`);
         }
 
         // await step.context.sendActivity(`I will remember that you want this kind of food :  ${ step.result } `);
