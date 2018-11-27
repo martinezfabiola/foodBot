@@ -10,13 +10,15 @@ const { ActionTypes, ActivityTypes } = require('botbuilder');
 
 const DIALOG_STATE_PROPERTY = 'dialogState';
 const USER_PROFILE_PROPERTY = 'user';
+const RESTAURANT_PROPERTY = 'restaurant';
 
-const WHO_ARE_YOU = 'who_are_you';
-const HELLO_USER = 'hello_user';
+const WHICH_KIND_OF_FOOD = 'which_kind_of_food';
+const KIND_OF_FOOD = 'kind_of_food';
 
 const NAME_PROMPT = 'name_prompt';
 const CONFIRM_PROMPT = 'confirm_prompt';
 const AGE_PROMPT = 'age_prompt';
+const FOOD_PROMPT = 'food_prompt';
 
 /**
  * A simple bot that responds to utterances with answers from the Language Understanding (LUIS) service.
@@ -45,28 +47,29 @@ class LuisBot {
         // Add prompts that will be used by the main dialogs.
         this.dialogs.add(new TextPrompt(NAME_PROMPT));
         this.dialogs.add(new ChoicePrompt(CONFIRM_PROMPT));
-        this.dialogs.add(new NumberPrompt(AGE_PROMPT, async (prompt) => {
-            if (prompt.recognized.succeeded) {
-                if (prompt.recognized.value <= 0) {
-                    await prompt.context.sendActivity(`Your age can't be less than zero.`);
-                    return false;
-                } else {
-                    return true;
-                }
-            }
-            return false;
-        }));
+        this.dialogs.add(new TextPrompt(FOOD_PROMPT));
+        // this.dialogs.add(new NumberPrompt(AGE_PROMPT, async (prompt) => {
+        //     if (prompt.recognized.succeeded) {
+        //         if (prompt.recognized.value <= 0) {
+        //             await prompt.context.sendActivity(`Your age can't be less than zero.`);
+        //             return false;
+        //         } else {
+        //             return true;
+        //         }
+        //     }
+        //     return false;
+        // }));
 
         // Create a dialog that asks the user for their name.
-        this.dialogs.add(new WaterfallDialog(WHO_ARE_YOU, [
+        this.dialogs.add(new WaterfallDialog(WHICH_KIND_OF_FOOD, [
             this.promptForName.bind(this),
             this.confirmAgePrompt.bind(this),
-            this.promptForAge.bind(this),
+            this.promptForFood.bind(this),
             this.captureAge.bind(this)
         ]));
 
         // Create a dialog that displays a user name after it has been collected.
-        this.dialogs.add(new WaterfallDialog(HELLO_USER, [
+        this.dialogs.add(new WaterfallDialog(KIND_OF_FOOD, [
             this.displayProfile.bind(this)
         ]));
     }
@@ -96,9 +99,9 @@ class LuisBot {
          if (!turnContext.responded) {
              const user = await this.userProfile.get(dc.context, {});
              if (user.name) {
-                 await dc.beginDialog(HELLO_USER);
+                 await dc.beginDialog(KIND_OF_FOOD);
              } else {
-                 await dc.beginDialog(WHO_ARE_YOU);
+                 await dc.beginDialog(WHICH_KIND_OF_FOOD);
              }
          }
      } else if (turnContext.activity.type === ActivityTypes.ConversationUpdate &&
@@ -188,11 +191,11 @@ async confirmAgePrompt(step) {
 
 // This step checks the user's response - if yes, the bot will proceed to prompt for age.
 // Otherwise, the bot will skip the age step.
-async promptForAge(step) {
+async promptForFood(step) {
     if (step.result && step.result.value === 'yes') {
-        return await step.prompt(AGE_PROMPT, `Tell me what ?`,
+        return await step.prompt(FOOD_PROMPT, `Tell me what king of food would you prefer ?`,
             {
-                retryPrompt: 'Sorry, please specify your age as a positive number or say cancel.'
+                retryPrompt: 'Sorry, I do not anderstand or say cancel.'
             }
         );
     } else {
@@ -204,9 +207,9 @@ async promptForAge(step) {
 async captureAge(step) {
     const user = await this.userProfile.get(step.context, {});
     if (step.result !== -1) {
-        user.age = step.result;
+        user.food = step.result;
         await this.userProfile.set(step.context, user);
-        await step.context.sendActivity(`I will remember that you are ${ step.result } years old.`);
+        await step.context.sendActivity(`I will remember that you want this kind of food :  ${ step.result } `);
     } else {// si l'user ne sait pas quelle genre de food il veut
 
             const { ActionTypes, ActivityTypes, CardFactory } = require('botbuilder');
@@ -238,8 +241,8 @@ async captureAge(step) {
 // This step displays the captured information back to the user.
 async displayProfile(step) {
     const user = await this.userProfile.get(step.context, {});
-    if (user.age) {
-        await step.context.sendActivity(`Your name is ${ user.name } and you are ${ user.age } years old.`);
+    if (user.food) {
+        await step.context.sendActivity(`Your name is ${ user.name } and you would like this kind of food : ${ user.food }.`);
     } else {
         await step.context.sendActivity(`Your name is ${ user.name } and you did not share your age.`);
     }
