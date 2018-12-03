@@ -4,7 +4,7 @@
 // const { ActivityTypes } = require('botbuilder');
 const { LuisRecognizer } = require('botbuilder-ai');
 
-const { ChoicePrompt, DialogSet, NumberPrompt, TextPrompt, WaterfallDialog } = require('botbuilder-dialogs');
+const { ChoicePrompt, DialogSet, NumberPrompt, TextPrompt, WaterfallDialog, DialogTurnStatus } = require('botbuilder-dialogs');
 
 const { ActionTypes, ActivityTypes } = require('botbuilder');
 
@@ -12,8 +12,12 @@ const DIALOG_STATE_PROPERTY = 'dialogState';
 const USER_PROFILE_PROPERTY = 'user';
 const RESTAURANT_PROPERTY = 'restaurant';
 
-const WHICH_KIND_OF_FOOD = 'which_kind_of_food';
-const KIND_OF_FOOD = 'kind_of_food';
+//const WHICH_KIND_OF_FOOD = 'which_kind_of_food';
+//const KIND_OF_FOOD = 'kind_of_food';
+const WHICH_NAME = 'which_name';
+const WHICH_FOOD = 'which_food';
+const WHICH_PRICE = 'which_price';
+const END_OF_DIALOG = 'end_of_dialog';
 
 const NAME_PROMPT = 'name_prompt';
 const CONFIRM_PROMPT = 'confirm_prompt';
@@ -61,15 +65,27 @@ class LuisBot {
         // }));
 
         // Create a dialog that asks the user for their name.
-        this.dialogs.add(new WaterfallDialog(WHICH_KIND_OF_FOOD, [
+        this.dialogs.add(new WaterfallDialog(WHICH_NAME, [
             this.promptForName.bind(this),
-            this.confirmAgePrompt.bind(this),
+            this.confirmNamePrompt.bind(this),
+        ]));
+
+        // Create a dialog that asks the user for the food he wants to eat
+        this.dialogs.add(new WaterfallDialog(WHICH_FOOD, [
+            this.confirmFoodPrompt.bind(this),
             this.promptForFood.bind(this),
-            this.captureAge.bind(this)
+            this.captureFood.bind(this),
+            this.displayFoodChoice.bind(this)
+        ]));
+
+        // Create a dialog that asks the user for which price he wants to eat
+        this.dialogs.add(new WaterfallDialog(WHICH_PRICE, [
+            this.capturePrice.bind(this),
+            this.displayPriceChoice.bind(this)
         ]));
 
         // Create a dialog that displays a user name after it has been collected.
-        this.dialogs.add(new WaterfallDialog(KIND_OF_FOOD, [
+        this.dialogs.add(new WaterfallDialog(END_OF_DIALOG, [
             this.displayProfile.bind(this)
         ]));
     }
@@ -98,16 +114,17 @@ class LuisBot {
          // Start the sample dialog in response to any other input.
          if (!turnContext.responded) {
              const user = await this.userProfile.get(dc.context, {});
-             if (user.name) {
-                 await dc.beginDialog(KIND_OF_FOOD);
-             } else {
-                 await dc.beginDialog(WHICH_KIND_OF_FOOD);
+             if (!user.name) { // si l'utilisateur n'a pas de nom alors le dialogue commence par lui demander son nom
+                 await dc.beginDialog(WHICH_NAME);
+             } else { // sinon le premier dialogue est pour lui demander quel genre de food il veut
+                 await dc.beginDialog(END_OF_DIALOG);
              }
+
          }
      } else if (turnContext.activity.type === ActivityTypes.ConversationUpdate &&
          turnContext.activity.recipient.id !== turnContext.activity.membersAdded[0].id) {
          // If the Activity is a ConversationUpdate, send a greeting message to the user.
-         await turnContext.sendActivity('Welcome to our FoodBot ! Send me a message and I will try to predict your intent to find a restaurant ');
+         await turnContext.sendActivity('Welcome to our FoodBot ! Send me a message and I will try to predict your intent to find a restaurant. Say Hi !');
      }
 
      // ...
@@ -118,62 +135,9 @@ class LuisBot {
      await this.conversationState.saveChanges(turnContext);
  }
 
-  /*
-    async promptFood(turnContext) {
-        // By checking the incoming Activity type, the bot only calls LUIS in appropriate cases.
-        if (turnContext.activity.type === ActivityTypes.Message) {
-            // Perform a call to LUIS to retrieve results for the user's message.
-            const results = await this.luisRecognizer.recognize(turnContext);
 
-            // Since the LuisRecognizer was configured to include the raw results, get the `topScoringIntent` as specified by LUIS.
-            const topIntent = results.luisResult.topScoringIntent;
-
-            if (topIntent.intent == 'FindARestaurant') {
-                await turnContext.sendActivity(`LUIS Top Scoring Intent OK`);
-            } else if (topIntent.intent !== 'None') {
-              await turnContext.sendActivity(`LUIS Top Scoring Intent: ${ topIntent.intent }, Score: ${ topIntent.score }`);
-            }
-            else {
-
-                const { ActionTypes, ActivityTypes, CardFactory } = require('botbuilder');
-
-                const reply = { type: ActivityTypes.Message };
-
-                // // build buttons to display.
-                const buttons = [
-                { type: ActionTypes.ImBack, title: '1. Mexicain', value: '1' },
-                { type: ActionTypes.ImBack, title: '2. Chinois', value: '2' },
-                { type: ActionTypes.ImBack, title: '3. Thailandais', value: '3' }
-                ];
-
-                // // construct hero card.
-                const card = CardFactory.heroCard('', undefined,
-                buttons, { text: 'Quel restaurant voulez-vous?' });
-
-                // // add card to Activity.
-                reply.attachments = [card];
-
-                // // Send hero card to the user.
-                await turnContext.sendActivity(reply);
-
-                // If the top scoring intent was "None" tell the user no valid intents were found and provide help.
-                // await turnContext.sendActivity(`No LUIS intents were found.
-                //                                 \nThis sample is about identifying two user intents:
-                //                                 \n - 'Calendar.Add'
-                //                                 \n - 'Calendar.Find'
-                //                                 \nTry typing 'Add Event' or 'Show me tomorrow'.`);
-            }
-        } else if (turnContext.activity.type === ActivityTypes.ConversationUpdate &&
-            turnContext.activity.recipient.id !== turnContext.activity.membersAdded[0].id) {
-            // If the Activity is a ConversationUpdate, send a greeting message to the user.
-            await turnContext.sendActivity('Welcome to our FoodBot ! Send me a message and I will try to predict your intent to find a restaurant ');
-        } else if (turnContext.activity.type !== ActivityTypes.ConversationUpdate) {
-            // Respond to all other Activity types.
-            await turnContext.sendActivity(`[${ turnContext.activity.type }]-type activity detected.`);
-        }
-    }
-    */
-
+/***********************************************************************************************************************/
+/***********************************************************************************************************************/
 
 
 // This step in the dialog prompts the user for their name.
@@ -181,11 +145,18 @@ async promptForName(step) {
     return await step.prompt(NAME_PROMPT, `What is your name, human?`);
 }
 
+// This step in the dialog prompts the user for their name.
+async confirmNamePrompt(step) {
+  const user = await this.userProfile.get(step.context, {});
+  user.name = step.result;
+  await this.userProfile.set(step.context, user);
+
+    return await step.beginDialog(WHICH_FOOD);
+}
+
 // This step captures the user's name, then prompts whether or not to collect an age.
-async confirmAgePrompt(step) {
-    const user = await this.userProfile.get(step.context, {});
-    user.name = step.result;
-    await this.userProfile.set(step.context, user);
+async confirmFoodPrompt(step) {
+
     await step.prompt(CONFIRM_PROMPT, 'Do you know what you want to eat ?', ['yes', 'no']);
 }
 
@@ -193,7 +164,7 @@ async confirmAgePrompt(step) {
 // Otherwise, the bot will skip the age step.
 async promptForFood(step) {
     if (step.result && step.result.value === 'yes') {
-        return await step.prompt(FOOD_PROMPT, `Tell me what king of food would you prefer ?`,
+        return await step.prompt(FOOD_PROMPT, `Tell me what kind of food would you prefer ?`,
             {
                 retryPrompt: 'Sorry, I do not anderstand or say cancel.'
             }
@@ -204,7 +175,7 @@ async promptForFood(step) {
 }
 
 // This step captures the user's age.
-async captureAge(step) {
+async captureFood(step) {
     const user = await this.userProfile.get(step.context, {});
 
     // Perform a call to LUIS to retrieve results for the user's message.
@@ -218,15 +189,17 @@ async captureAge(step) {
 
         if (topIntent.intent == 'ChooseTypeOfFood') {
             user.food = topEntity.entity;
-            await this.userProfile.set(step.context, user); 
+            await this.userProfile.set(step.context, user);
 
-            await step.context.sendActivity(`Entity: ${topEntity.entity}`);
-            await step.context.sendActivity(`I'm going to find the restaurant for you`);
+            //await step.context.sendActivity(`Entity: ${topEntity.entity}`);
+            await step.context.sendActivity(`I'm going to find the restaurant to eat : ${topEntity.entity}`);
+            //return await step.next();
         }
-        else if (topIntent.intent !== 'None') {
+        else {
             user.food = step.result;
             await this.userProfile.set(step.context, user);
-            await step.context.sendActivity(`I didn't understand what you just said to me`);
+            await step.context.sendActivity(`Sorry, I do not anderstand or say cancel.`);
+            return await step.replaceDialog(WHICH_FOOD);
         }
 
         // await step.context.sendActivity(`I will remember that you want this kind of food :  ${ step.result } `);
@@ -254,11 +227,12 @@ async captureAge(step) {
             await step.context.sendActivity(reply);
 
         }
-    return await step.endDialog();
+        //return await step.beginDialog(WHICH_PRICE);
+    //return await step.endDialog();
 }
 
 // This step displays the captured information back to the user.
-async displayProfile(step) {
+async displayFoodChoice(step) {
     const user = await this.userProfile.get(step.context, {});
     if (user.food) {
         await step.context.sendActivity(`Your name is ${ user.name } and you would like this kind of food : ${ user.food }.`);
@@ -280,6 +254,63 @@ async displayProfile(step) {
 
       await step.context.sendActivity(`Your name is ${ user.name } and you would like this kind of food : ${ user.food }.`);
     }
+    return await step.beginDialog(WHICH_PRICE);
+    //return await step.endDialog();
+}
+
+// This step captures the user's age.
+async capturePrice(step) {
+    const user = await this.userProfile.get(step.context, {});
+
+    const { ActionTypes, ActivityTypes, CardFactory } = require('botbuilder');
+
+    const reply = { type: ActivityTypes.Message };
+
+    // // build buttons to display.
+    const buttons = [
+    { type: ActionTypes.ImBack, title: '1. *', value: '1' },
+    { type: ActionTypes.ImBack, title: '2. **', value: '2' },
+    { type: ActionTypes.ImBack, title: '3. ***', value: '3' }
+    ];
+
+    // // construct hero card.
+    const card = CardFactory.heroCard('', undefined,
+    buttons, { text: 'For how much do you want to eat ?' });
+
+    // // add card to Activity.
+    reply.attachments = [card];
+
+    // // Send hero card to the user.
+    await step.context.sendActivity(reply);
+}
+
+// This step displays the captured information back to the user.
+async displayPriceChoice(step) {
+    const user = await this.userProfile.get(step.context, {});
+
+    if (step.context.activity.text == 1) {
+      user.price = "Low price";
+      await this.userProfile.set(step.context, user);
+    }  else if (step.context.activity.text == 2) {
+      user.price = "Medium price";
+      await this.userProfile.set(step.context, user);
+    } else {
+      user.price = "High price";
+      await this.userProfile.set(step.context, user);
+    }
+
+    await step.context.sendActivity(`${ user.name } you would like this kind of food : ${ user.food } and for a ${ user.price }`);
+
+    return await step.endDialog();
+}
+
+// This step displays the captured information back to the user.
+async displayProfile(step) {
+    const user = await this.userProfile.get(step.context, {});
+
+    await step.context.sendActivity(`Your order is on your way : Your name is ${ user.name } and you would like this kind of food : ${ user.food }.`);
+
+
     return await step.endDialog();
 }
 
@@ -288,3 +319,61 @@ async displayProfile(step) {
 }
 
 module.exports.LuisBot = LuisBot;
+
+
+
+/*
+  async promptFood(turnContext) {
+      // By checking the incoming Activity type, the bot only calls LUIS in appropriate cases.
+      if (turnContext.activity.type === ActivityTypes.Message) {
+          // Perform a call to LUIS to retrieve results for the user's message.
+          const results = await this.luisRecognizer.recognize(turnContext);
+
+          // Since the LuisRecognizer was configured to include the raw results, get the `topScoringIntent` as specified by LUIS.
+          const topIntent = results.luisResult.topScoringIntent;
+
+          if (topIntent.intent == 'FindARestaurant') {
+              await turnContext.sendActivity(`LUIS Top Scoring Intent OK`);
+          } else if (topIntent.intent !== 'None') {
+            await turnContext.sendActivity(`LUIS Top Scoring Intent: ${ topIntent.intent }, Score: ${ topIntent.score }`);
+          }
+          else {
+
+              const { ActionTypes, ActivityTypes, CardFactory } = require('botbuilder');
+
+              const reply = { type: ActivityTypes.Message };
+
+              // // build buttons to display.
+              const buttons = [
+              { type: ActionTypes.ImBack, title: '1. Mexicain', value: '1' },
+              { type: ActionTypes.ImBack, title: '2. Chinois', value: '2' },
+              { type: ActionTypes.ImBack, title: '3. Thailandais', value: '3' }
+              ];
+
+              // // construct hero card.
+              const card = CardFactory.heroCard('', undefined,
+              buttons, { text: 'Quel restaurant voulez-vous?' });
+
+              // // add card to Activity.
+              reply.attachments = [card];
+
+              // // Send hero card to the user.
+              await turnContext.sendActivity(reply);
+
+              // If the top scoring intent was "None" tell the user no valid intents were found and provide help.
+              // await turnContext.sendActivity(`No LUIS intents were found.
+              //                                 \nThis sample is about identifying two user intents:
+              //                                 \n - 'Calendar.Add'
+              //                                 \n - 'Calendar.Find'
+              //                                 \nTry typing 'Add Event' or 'Show me tomorrow'.`);
+          }
+      } else if (turnContext.activity.type === ActivityTypes.ConversationUpdate &&
+          turnContext.activity.recipient.id !== turnContext.activity.membersAdded[0].id) {
+          // If the Activity is a ConversationUpdate, send a greeting message to the user.
+          await turnContext.sendActivity('Welcome to our FoodBot ! Send me a message and I will try to predict your intent to find a restaurant ');
+      } else if (turnContext.activity.type !== ActivityTypes.ConversationUpdate) {
+          // Respond to all other Activity types.
+          await turnContext.sendActivity(`[${ turnContext.activity.type }]-type activity detected.`);
+      }
+  }
+  */
