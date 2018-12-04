@@ -60,17 +60,6 @@ class LuisBot {
         this.dialogs.add(new TextPrompt(FOOD_PROMPT));
         this.dialogs.add(new ChoicePrompt(CONFIRM_LOCALISATION_PROMPT));
         this.dialogs.add(new TextPrompt(LOCALISATION_PROMPT));
-        // this.dialogs.add(new NumberPrompt(AGE_PROMPT, async (prompt) => {
-        //     if (prompt.recognized.succeeded) {
-        //         if (prompt.recognized.value <= 0) {
-        //             await prompt.context.sendActivity(`Your age can't be less than zero.`);
-        //             return false;
-        //         } else {
-        //             return true;
-        //         }
-        //     }
-        //     return false;
-        // }));
 
         // Create a dialog that asks the user for their name.
         this.dialogs.add(new WaterfallDialog(WHICH_NAME, [
@@ -480,14 +469,14 @@ async displayProfile(step) {
 
 module.exports.LuisBot = LuisBot;
 
+// **********************************************
+// *** Démarrage rapide pour l’API Recherche d’entités Bing avec Node.js ***
+// **********************************************
+
 'use strict';
 
 var dataName = [];
 let https = require ('https');
-
-// **********************************************
-// *** Update or verify the following values. ***
-// **********************************************
 
 // Replace the subscriptionKey string value with your valid subscription key.
 let subscriptionKey = '04a1e0de58694f71a336733e87b4d95b';
@@ -511,13 +500,6 @@ let response_handler = function (response) {
         let body_ = JSON.parse (body);
         let body__ = JSON.stringify (body_, null, '  ');
 
-      //  console.log (body__);
-
-    //    console.log("body__._type");
-    //    console.log(body_.places);
-      //  console.log(body_.places.value[0].name);
-    //  console.log('q = ' + q);
-
       console.log(body_.places.value);
 
         for(var i in body_.places.value) {
@@ -525,99 +507,14 @@ let response_handler = function (response) {
            dataName.push(body_.places.value[i]);
         }
 
-
-    //    console.log(dataName);
-      //  console.log(dataName[0].name);
-
     });
     response.on ('error', function (e) {
         console.log ('Error: ' + e.message);
     });
 };
 
-/*
-async function search () {
-    let request_params = {
-        method : 'GET',
-        hostname : host,
-        path : path + params,
-        headers : {
-            'Ocp-Apim-Subscription-Key' : subscriptionKey,
-        }
-    };
-
-    let req = https.request (request_params, response_handler);
-    req.end ();
-
-    await someTimeConsumingThing();
-
-
-}
-
-search().then(function() {
-  //console.log(dataName);
-  console.log("it's finish !!!!!!!")
-  console.log(dataName[0].name);
-});
-*/
 function someTimeConsumingThing() {
   return new Promise(function(resolve,reject) {
     setTimeout(resolve, 2000);
   })
 }
-
-/*
-  async promptFood(turnContext) {
-      // By checking the incoming Activity type, the bot only calls LUIS in appropriate cases.
-      if (turnContext.activity.type === ActivityTypes.Message) {
-          // Perform a call to LUIS to retrieve results for the user's message.
-          const results = await this.luisRecognizer.recognize(turnContext);
-
-          // Since the LuisRecognizer was configured to include the raw results, get the `topScoringIntent` as specified by LUIS.
-          const topIntent = results.luisResult.topScoringIntent;
-
-          if (topIntent.intent == 'FindARestaurant') {
-              await turnContext.sendActivity(`LUIS Top Scoring Intent OK`);
-          } else if (topIntent.intent !== 'None') {
-            await turnContext.sendActivity(`LUIS Top Scoring Intent: ${ topIntent.intent }, Score: ${ topIntent.score }`);
-          }
-          else {
-
-              const { ActionTypes, ActivityTypes, CardFactory } = require('botbuilder');
-
-              const reply = { type: ActivityTypes.Message };
-
-              // // build buttons to display.
-              const buttons = [
-              { type: ActionTypes.ImBack, title: '1. Mexicain', value: '1' },
-              { type: ActionTypes.ImBack, title: '2. Chinois', value: '2' },
-              { type: ActionTypes.ImBack, title: '3. Thailandais', value: '3' }
-              ];
-
-              // // construct hero card.
-              const card = CardFactory.heroCard('', undefined,
-              buttons, { text: 'Quel restaurant voulez-vous?' });
-
-              // // add card to Activity.
-              reply.attachments = [card];
-
-              // // Send hero card to the user.
-              await turnContext.sendActivity(reply);
-
-              // If the top scoring intent was "None" tell the user no valid intents were found and provide help.
-              // await turnContext.sendActivity(`No LUIS intents were found.
-              //                                 \nThis sample is about identifying two user intents:
-              //                                 \n - 'Calendar.Add'
-              //                                 \n - 'Calendar.Find'
-              //                                 \nTry typing 'Add Event' or 'Show me tomorrow'.`);
-          }
-      } else if (turnContext.activity.type === ActivityTypes.ConversationUpdate &&
-          turnContext.activity.recipient.id !== turnContext.activity.membersAdded[0].id) {
-          // If the Activity is a ConversationUpdate, send a greeting message to the user.
-          await turnContext.sendActivity('Welcome to our FoodBot ! Send me a message and I will try to predict your intent to find a restaurant ');
-      } else if (turnContext.activity.type !== ActivityTypes.ConversationUpdate) {
-          // Respond to all other Activity types.
-          await turnContext.sendActivity(`[${ turnContext.activity.type }]-type activity detected.`);
-      }
-  }
-  */
