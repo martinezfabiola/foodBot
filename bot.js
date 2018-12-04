@@ -27,6 +27,9 @@ const FOOD_PROMPT = 'food_prompt';
 const CONFIRM_LOCALISATION_PROMPT = 'confirm_localisation_prompt';
 const LOCALISATION_PROMPT = 'localisation_prompt';
 
+var user = [];
+
+
 /**
  * A simple bot that responds to utterances with answers from the Language Understanding (LUIS) service.
  * If an answer is not found for an utterance, the bot responds with help.
@@ -99,7 +102,7 @@ class LuisBot {
 
         // Create a dialog that displays a user name after it has been collected.
         this.dialogs.add(new WaterfallDialog(END_OF_DIALOG, [
-            this.displayProfile.bind(this)
+          this.displayProfile.bind(this)
         ]));
     }
 
@@ -155,22 +158,6 @@ class LuisBot {
 
 // This step in the dialog prompts the user for their name.
 async promptForName(step) {
-  let request_params = {
-      method : 'GET',
-      hostname : host,
-      path : path + params,
-      headers : {
-          'Ocp-Apim-Subscription-Key' : subscriptionKey,
-      }
-  };
-
-  let req = https.request (request_params, response_handler);
-  req.end ();
-
-  await someTimeConsumingThing();
-
-  await step.context.sendActivity(`it's finish !!!!!!! ${dataName[0].name}`);
-
     return await step.prompt(NAME_PROMPT, `What is your name, human?`);
 }
 
@@ -390,9 +377,9 @@ async captureLocalisation(step) {
 
             // // build buttons to display.
             const buttons = [
-            { type: ActionTypes.ImBack, title: '1. Near to you', value: '1' },
-            { type: ActionTypes.ImBack, title: '2. About 5km around you', value: '2' },
-            { type: ActionTypes.ImBack, title: '3. About 15km around you', value: '3' }
+            { type: ActionTypes.ImBack, title: '1. San Francisco', value: '1' },
+            { type: ActionTypes.ImBack, title: '2. New York', value: '2' },
+            { type: ActionTypes.ImBack, title: '3. Miami', value: '3' }
             ];
 
             // // construct hero card.
@@ -421,27 +408,52 @@ async displayLocalisationChoice(step) {
       //await step.context.sendActivity(`[${ step.context.activity.text }]-type activity detected.`);
 
       if (step.context.activity.text == 1) {
-        user.localisation = "near";
+        user.localisation = "San Francisco";
         await this.userProfile.set(step.context, user);
       }  else if (step.context.activity.text == 2) {
-        user.localisation = "5 km";
+        user.localisation = "New York";
         await this.userProfile.set(step.context, user);
       } else {
-        user.localisation = "15 km";
+        user.localisation = "Miami";
         await this.userProfile.set(step.context, user);
       }
 
       await step.context.sendActivity(`${ user.name } you would like to eat : ${ user.food } where it's located : ${ user.localisation }`);
+      console.log('user.food  1 = ' + `${ user.food }`);
+      console.log('user.localisation 2 = ' + user.localisation);
     }
 
-    return await step.endDialog();
+
+          let mkt = 'en-US';
+          //console.log('user.food  = ' + `${ user.food }` );
+          //console.log('user.localisation = ' + user.localisation);
+          let q = `${ user.food } restaurant ${ user.localisation } `;
+        console.log('q = ' + q);
+
+          let params = '?mkt=' + mkt + '&q=' + encodeURI(q);
+
+          let request_params = {
+              method : 'GET',
+              hostname : host,
+              path : path + params,
+              headers : {
+                  'Ocp-Apim-Subscription-Key' : subscriptionKey,
+              }
+          };
+
+          let req = https.request (request_params, response_handler);
+          req.end ();
+
+          await someTimeConsumingThing();
+
+    return await step.replaceDialog(END_OF_DIALOG);
 }
 
 // This step displays the captured information back to the user.
 async displayProfile(step) {
     const user = await this.userProfile.get(step.context, {});
 
-    await step.context.sendActivity(`${ user.name } Your order is on your way ! You would like this kind of food : ${ user.food } less than ${ user.localisation }km from you, for a ${ user.price }`);
+    //await step.context.sendActivity(`${ user.name } Your order is on your way ! You would like this kind of food : ${ user.food } less than ${ user.localisation }km from you, for a ${ user.price }`);
 
     // require MessageFactory and CardFactory from botbuilder.
     const {MessageFactory, CardFactory} = require('botbuilder');
@@ -449,6 +461,7 @@ async displayProfile(step) {
 
     //  init message object
     let messageWithCarouselOfCards = MessageFactory.carousel([
+    //  CardFactory.heroCard(`${dataName[0].name}`, `${dataName[0].telephone}`,  `${dataName[0].address.neighborhood}`, `${dataName[0].address.postalCode}`, `${dataName[0].address.addressLocality}`, [`${dataName[0].url}`]),
       CardFactory.heroCard(`${dataName[0].name}`, [`${dataName[0].telephone}`], [`${dataName[0].url}`]),
       CardFactory.heroCard(`${dataName[1].name}`, [`${dataName[1].telephone}`], [`${dataName[1].url}`]),
       CardFactory.heroCard(`${dataName[2].name}`, [`${dataName[2].telephone}`], [`${dataName[2].url}`]),
@@ -467,7 +480,6 @@ async displayProfile(step) {
 
 module.exports.LuisBot = LuisBot;
 
-
 'use strict';
 
 var dataName = [];
@@ -483,13 +495,15 @@ let subscriptionKey = '04a1e0de58694f71a336733e87b4d95b';
 let host = 'api.cognitive.microsoft.com';
 let path = '/bing/v7.0/entities';
 
-let mkt = 'en-US';
-let q = 'italian restaurant San Francisco';
+//let q = 'italian restaurant San Francisco';
+//let q = `${ user.food } restaurant ${ user.localisation } `;
 
-let params = '?mkt=' + mkt + '&q=' + encodeURI(q);
+
+//let params = '?mkt=' + mkt + '&q=' + encodeURI(q);
 
 let response_handler = function (response) {
     let body = '';
+
     response.on ('data', function (d) {
         body += d;
     });
@@ -502,15 +516,12 @@ let response_handler = function (response) {
     //    console.log("body__._type");
     //    console.log(body_.places);
       //  console.log(body_.places.value[0].name);
-
-  //      foreach (name in body_.places.value) {
-    //      console.log(name.name);
-      //  }
+    //  console.log('q = ' + q);
 
       console.log(body_.places.value);
 
         for(var i in body_.places.value) {
-            //console.log(body_.places.value[i]);
+            console.log(body_.places.value[i]);
            dataName.push(body_.places.value[i]);
         }
 
