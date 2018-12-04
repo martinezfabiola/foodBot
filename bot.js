@@ -17,12 +17,15 @@ const RESTAURANT_PROPERTY = 'restaurant';
 const WHICH_NAME = 'which_name';
 const WHICH_FOOD = 'which_food';
 const WHICH_PRICE = 'which_price';
+const WHICH_LOCALISATION = 'which_localisation';
 const END_OF_DIALOG = 'end_of_dialog';
 
 const NAME_PROMPT = 'name_prompt';
 const CONFIRM_PROMPT = 'confirm_prompt';
-const AGE_PROMPT = 'age_prompt';
+//const AGE_PROMPT = 'age_prompt';
 const FOOD_PROMPT = 'food_prompt';
+const CONFIRM_LOCALISATION_PROMPT = 'confirm_localisation_prompt';
+const LOCALISATION_PROMPT = 'localisation_prompt';
 
 /**
  * A simple bot that responds to utterances with answers from the Language Understanding (LUIS) service.
@@ -52,6 +55,8 @@ class LuisBot {
         this.dialogs.add(new TextPrompt(NAME_PROMPT));
         this.dialogs.add(new ChoicePrompt(CONFIRM_PROMPT));
         this.dialogs.add(new TextPrompt(FOOD_PROMPT));
+        this.dialogs.add(new ChoicePrompt(CONFIRM_LOCALISATION_PROMPT));
+        this.dialogs.add(new TextPrompt(LOCALISATION_PROMPT));
         // this.dialogs.add(new NumberPrompt(AGE_PROMPT, async (prompt) => {
         //     if (prompt.recognized.succeeded) {
         //         if (prompt.recognized.value <= 0) {
@@ -82,6 +87,14 @@ class LuisBot {
         this.dialogs.add(new WaterfallDialog(WHICH_PRICE, [
             this.capturePrice.bind(this),
             this.displayPriceChoice.bind(this)
+        ]));
+
+        // Create a dialog that asks the user for where he wants to eat
+        this.dialogs.add(new WaterfallDialog(WHICH_LOCALISATION, [
+          this.confirmLocalisationPrompt.bind(this),
+          this.promptForLocalisation.bind(this),
+          this.captureLocalisation.bind(this),
+          this.displayLocalisationChoice.bind(this)
         ]));
 
         // Create a dialog that displays a user name after it has been collected.
@@ -213,7 +226,7 @@ async captureFood(step) {
             const buttons = [
             { type: ActionTypes.ImBack, title: '1. European', value: '1' },
             { type: ActionTypes.ImBack, title: '2. Chinese', value: '2' },
-            { type: ActionTypes.ImBack, title: '3. Other', value: '3' }
+            { type: ActionTypes.ImBack, title: '3. American/Mexican', value: '3' }
             ];
 
             // // construct hero card.
@@ -248,7 +261,7 @@ async displayFoodChoice(step) {
         user.food = "Chinese";
         await this.userProfile.set(step.context, user);
       } else {
-        user.food = "Other";
+        user.food = "American";
         await this.userProfile.set(step.context, user);
       }
 
@@ -301,6 +314,110 @@ async displayPriceChoice(step) {
 
     await step.context.sendActivity(`${ user.name } you would like this kind of food : ${ user.food } and for a ${ user.price }`);
 
+    return await step.beginDialog(WHICH_LOCALISATION);
+}
+
+// This step captures the restaurant's localisation, then prompts whether or not to collect a localisation.
+async confirmLocalisationPrompt(step) {
+
+    await step.prompt(CONFIRM_LOCALISATION_PROMPT, 'Do you know where you want to eat ?', ['yes', 'no']);
+}
+
+// This step checks the user's response - if yes, the bot will proceed to prompt for localisation.
+// Otherwise, the bot will skip the localisation step.
+async promptForLocalisation(step) {
+    if (step.result && step.result.value === 'yes') {
+        return await step.prompt(LOCALISATION_PROMPT, `Tell me where would you prefer to eat ?`,
+            {
+                retryPrompt: 'Sorry, I do not anderstand or say cancel.'
+            }
+        );
+    } else {
+        return await step.next(-1);
+    }
+}
+
+// This step captures the restaurant's localisation.
+async captureLocalisation(step) {
+    const user = await this.userProfile.get(step.context, {});
+
+    // Perform a call to LUIS to retrieve results for the user's message.
+    const results = await this.luisRecognizer.recognize(step.context);
+
+    // Since the LuisRecognizer was configured to include the raw results, get the `topScoringIntent` as specified by LUIS.
+    const topIntent = results.luisResult.topScoringIntent;
+    const topEntity = results.luisResult.entities[0];
+
+    if (step.result !== -1) {
+
+        if (topIntent.intent == 'FindLocalisation') {
+            user.localisation = topEntity.entity;
+            await this.userProfile.set(step.context, user);
+
+            await step.context.sendActivity(`Entity: ${topEntity.entity}`);
+            await step.context.sendActivity(`I'm going to find the restaurant at this localisation : ${topEntity.entity}`);
+            //return await step.next();
+        }
+        else {
+            //user.localisation = step.result;
+            //await this.userProfile.set(step.context, user);
+            await step.context.sendActivity(`Sorry, I do not anderstand or say cancel.`);
+            return await step.replaceDialog(WHICH_LOCALISATION);
+        }
+
+        // await step.context.sendActivity(`I will remember that you want this kind of food :  ${ step.result } `);
+    } else {// si l'user ne sait pas quelle genre de food il veut
+
+            const { ActionTypes, ActivityTypes, CardFactory } = require('botbuilder');
+
+            const reply = { type: ActivityTypes.Message };
+
+            // // build buttons to display.
+            const buttons = [
+            { type: ActionTypes.ImBack, title: '1. Near to you', value: '1' },
+            { type: ActionTypes.ImBack, title: '2. About 5km around you', value: '2' },
+            { type: ActionTypes.ImBack, title: '3. About 15km around you', value: '3' }
+            ];
+
+            // // construct hero card.
+            const card = CardFactory.heroCard('', undefined,
+            buttons, { text: 'Where do you want to eat ?' });
+
+            // // add card to Activity.
+            reply.attachments = [card];
+
+            // // Send hero card to the user.
+            await step.context.sendActivity(reply);
+
+        }
+        //return await step.beginDialog(WHICH_PRICE);
+    //return await step.endDialog();
+}
+
+// This step displays the captured information back to the user.
+async displayLocalisationChoice(step) {
+    const user = await this.userProfile.get(step.context, {});
+    if (user.localisation) {
+        await step.context.sendActivity(`${ user.name } you would like to eat : ${ user.food } where it's ${ user.localisation } from you`);
+    } else {
+      const user = await this.userProfile.get(step.context, {});
+
+      //await step.context.sendActivity(`[${ step.context.activity.text }]-type activity detected.`);
+
+      if (step.context.activity.text == 1) {
+        user.localisation = "near";
+        await this.userProfile.set(step.context, user);
+      }  else if (step.context.activity.text == 2) {
+        user.localisation = "5 km";
+        await this.userProfile.set(step.context, user);
+      } else {
+        user.localisation = "15 km";
+        await this.userProfile.set(step.context, user);
+      }
+
+      await step.context.sendActivity(`${ user.name } you would like to eat : ${ user.food } where it's located : ${ user.localisation }`);
+    }
+
     return await step.endDialog();
 }
 
@@ -308,7 +425,7 @@ async displayPriceChoice(step) {
 async displayProfile(step) {
     const user = await this.userProfile.get(step.context, {});
 
-    await step.context.sendActivity(`Your order is on your way : Your name is ${ user.name } and you would like this kind of food : ${ user.food }.`);
+    await step.context.sendActivity(`${ user.name } Your order is on your way ! You would like this kind of food : ${ user.food } less than ${ user.localisation }km from you, for a ${ user.price }`);
 
 
     return await step.endDialog();
