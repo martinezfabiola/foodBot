@@ -443,7 +443,20 @@ async displayProfile(step) {
 
     await step.context.sendActivity(`${ user.name } Your order is on your way ! You would like this kind of food : ${ user.food } less than ${ user.localisation }km from you, for a ${ user.price }`);
 
+    // require MessageFactory and CardFactory from botbuilder.
+    const {MessageFactory, CardFactory} = require('botbuilder');
 
+
+    //  init message object
+    let messageWithCarouselOfCards = MessageFactory.carousel([
+      CardFactory.heroCard(`${dataName[0].name}`, [`${dataName[0].telephone}`], [`${dataName[0].url}`]),
+      CardFactory.heroCard(`${dataName[1].name}`, [`${dataName[1].telephone}`], [`${dataName[1].url}`]),
+      CardFactory.heroCard(`${dataName[2].name}`, [`${dataName[2].telephone}`], [`${dataName[2].url}`]),
+      CardFactory.heroCard(`${dataName[3].name}`, [`${dataName[3].telephone}`], [`${dataName[3].url}`]),
+      CardFactory.heroCard(`${dataName[4].name}`, [`${dataName[4].telephone}`], [`${dataName[4].url}`])
+    ]);
+
+    await step.context.sendActivity(messageWithCarouselOfCards);
 
     return await step.endDialog();
 }
