@@ -155,6 +155,22 @@ class LuisBot {
 
 // This step in the dialog prompts the user for their name.
 async promptForName(step) {
+  let request_params = {
+      method : 'GET',
+      hostname : host,
+      path : path + params,
+      headers : {
+          'Ocp-Apim-Subscription-Key' : subscriptionKey,
+      }
+  };
+
+  let req = https.request (request_params, response_handler);
+  req.end ();
+
+  await someTimeConsumingThing();
+
+  await step.context.sendActivity(`it's finish !!!!!!! ${dataName[0].name}`);
+
     return await step.prompt(NAME_PROMPT, `What is your name, human?`);
 }
 
@@ -428,6 +444,7 @@ async displayProfile(step) {
     await step.context.sendActivity(`${ user.name } Your order is on your way ! You would like this kind of food : ${ user.food } less than ${ user.localisation }km from you, for a ${ user.price }`);
 
 
+
     return await step.endDialog();
 }
 
@@ -438,6 +455,92 @@ async displayProfile(step) {
 module.exports.LuisBot = LuisBot;
 
 
+'use strict';
+
+var dataName = [];
+let https = require ('https');
+
+// **********************************************
+// *** Update or verify the following values. ***
+// **********************************************
+
+// Replace the subscriptionKey string value with your valid subscription key.
+let subscriptionKey = '04a1e0de58694f71a336733e87b4d95b';
+
+let host = 'api.cognitive.microsoft.com';
+let path = '/bing/v7.0/entities';
+
+let mkt = 'en-US';
+let q = 'italian restaurant San Francisco';
+
+let params = '?mkt=' + mkt + '&q=' + encodeURI(q);
+
+let response_handler = function (response) {
+    let body = '';
+    response.on ('data', function (d) {
+        body += d;
+    });
+    response.on ('end', function () {
+        let body_ = JSON.parse (body);
+        let body__ = JSON.stringify (body_, null, '  ');
+
+      //  console.log (body__);
+
+    //    console.log("body__._type");
+    //    console.log(body_.places);
+      //  console.log(body_.places.value[0].name);
+
+  //      foreach (name in body_.places.value) {
+    //      console.log(name.name);
+      //  }
+
+      console.log(body_.places.value);
+
+        for(var i in body_.places.value) {
+            //console.log(body_.places.value[i]);
+           dataName.push(body_.places.value[i]);
+        }
+
+
+    //    console.log(dataName);
+      //  console.log(dataName[0].name);
+
+    });
+    response.on ('error', function (e) {
+        console.log ('Error: ' + e.message);
+    });
+};
+
+/*
+async function search () {
+    let request_params = {
+        method : 'GET',
+        hostname : host,
+        path : path + params,
+        headers : {
+            'Ocp-Apim-Subscription-Key' : subscriptionKey,
+        }
+    };
+
+    let req = https.request (request_params, response_handler);
+    req.end ();
+
+    await someTimeConsumingThing();
+
+
+}
+
+search().then(function() {
+  //console.log(dataName);
+  console.log("it's finish !!!!!!!")
+  console.log(dataName[0].name);
+});
+*/
+function someTimeConsumingThing() {
+  return new Promise(function(resolve,reject) {
+    setTimeout(resolve, 2000);
+  })
+}
 
 /*
   async promptFood(turnContext) {
