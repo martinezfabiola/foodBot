@@ -6,7 +6,7 @@ const { LuisRecognizer } = require('botbuilder-ai');
 
 const { ChoicePrompt, DialogSet, NumberPrompt, TextPrompt, WaterfallDialog, DialogTurnStatus } = require('botbuilder-dialogs');
 
-const { ActionTypes, ActivityTypes } = require('botbuilder');
+const { ActionTypes, ActivityTypes, CardFactory, BotFrameworkAdapter, MessageFactory } = require('botbuilder');
 
 const DIALOG_STATE_PROPERTY = 'dialogState';
 const USER_PROFILE_PROPERTY = 'user';
@@ -147,6 +147,8 @@ class LuisBot {
 
 // This step in the dialog prompts the user for their name.
 async promptForName(step) {
+
+
     return await step.prompt(NAME_PROMPT, `What is your name, human?`);
 }
 
@@ -161,8 +163,8 @@ async confirmNamePrompt(step) {
 
 // This step captures the user's name, then prompts whether or not to collect an age.
 async confirmFoodPrompt(step) {
-
-    await step.prompt(CONFIRM_PROMPT, 'Do you know what you want to eat ?', ['yes', 'no']);
+    const user = await this.userProfile.get(step.context, {});
+    await step.prompt(CONFIRM_PROMPT, `Hey ${ user.name }! Do you know what you want to eat ?`, ['yes', 'no']);
 }
 
 // This step checks the user's response - if yes, the bot will proceed to prompt for age.
@@ -294,13 +296,13 @@ async displayPriceChoice(step) {
     const user = await this.userProfile.get(step.context, {});
 
     if (step.context.activity.text == 1) {
-      user.price = "Low price";
+      user.price = "cheap";
       await this.userProfile.set(step.context, user);
     }  else if (step.context.activity.text == 2) {
-      user.price = "Medium price";
+      user.price = "";
       await this.userProfile.set(step.context, user);
     } else {
-      user.price = "High price";
+      user.price = "expensive";
       await this.userProfile.set(step.context, user);
     }
 
@@ -416,7 +418,7 @@ async displayLocalisationChoice(step) {
           let mkt = 'en-US';
           //console.log('user.food  = ' + `${ user.food }` );
           //console.log('user.localisation = ' + user.localisation);
-          let q = `${ user.food } restaurant ${ user.localisation } `;
+          let q = `${ user.food } restaurant ${ user.localisation } ${ user.price }`;
         console.log('q = ' + q);
 
           let params = '?mkt=' + mkt + '&q=' + encodeURI(q);
@@ -442,23 +444,220 @@ async displayLocalisationChoice(step) {
 async displayProfile(step) {
     const user = await this.userProfile.get(step.context, {});
 
-    //await step.context.sendActivity(`${ user.name } Your order is on your way ! You would like this kind of food : ${ user.food } less than ${ user.localisation }km from you, for a ${ user.price }`);
+    const CARD_UN = {
+      "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+   "type": "AdaptiveCard",
+   "version": "1.0",
+   "body": [
+     {
+       "speak": "Tom's Pie is a Pizza restaurant which is rated 9.3 by customers.",
+       "type": "ColumnSet",
+       "columns": [
+         {
+           "type": "Column",
+           "width": 2,
+           "items": [
+             {
+               "type": "TextBlock",
+               "text": `${user.food}`
+             },
+             {
+               "type": "TextBlock",
+               "text": `${dataName[0].name}`,
+               "weight": "bolder",
+               "size": "extraLarge",
+               "spacing": "none"
+             },
+             {
+               "type": "TextBlock",
+               "text": `${dataName[0].telephone}`,
+               "isSubtle": true,
+               "spacing": "none"
+             },
+             {
+               "type": "TextBlock",
+               "text": `${dataName[0].address.neighborhood}`,
+               "size": "small",
+               "spacing": "none"
+             },
+             {
+               "type": "TextBlock",
+               "text": `${dataName[0].address.postalCode} ${dataName[0].address.addressLocality} ${dataName[0].address.addressRegion}`,
+               "size": "small",
+               "wrap": true
+             }
+           ]
+         },
+         {
+           "type": "Column",
+           "width": 1,
+           "items": [
+             {
+               "type": "Image",
+               "url": "https://picsum.photos/300?image=882",
+               "size": "auto"
+             }
+           ]
+         }
+       ]
+     }
+   ],
+   "actions": [
+     {
+       "type": "Action.OpenUrl",
+       "title": "More Info",
+       "url": `${dataName[0].url}`
+     }
+   ]
+  };
 
-    // require MessageFactory and CardFactory from botbuilder.
-    const {MessageFactory, CardFactory} = require('botbuilder');
+  const CARD_DEUX = {
+    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+ "type": "AdaptiveCard",
+ "version": "1.0",
+ "body": [
+   {
+     "speak": "Tom's Pie is a Pizza restaurant which is rated 9.3 by customers.",
+     "type": "ColumnSet",
+     "columns": [
+       {
+         "type": "Column",
+         "width": 2,
+         "items": [
+           {
+             "type": "TextBlock",
+             "text": `${user.food}`
+           },
+           {
+             "type": "TextBlock",
+             "text": `${dataName[1].name}`,
+             "weight": "bolder",
+             "size": "extraLarge",
+             "spacing": "none"
+           },
+           {
+             "type": "TextBlock",
+             "text": `${dataName[1].telephone}`,
+             "isSubtle": true,
+             "spacing": "none"
+           },
+           {
+             "type": "TextBlock",
+             "text": `${dataName[1].address.neighborhood}`,
+             "size": "small",
+             "spacing": "none"
+           },
+           {
+             "type": "TextBlock",
+             "text": `${dataName[1].address.postalCode} ${dataName[1].address.addressLocality} ${dataName[1].address.addressRegion}`,
+             "size": "small",
+             "wrap": true
+           }
+         ]
+       },
+       {
+         "type": "Column",
+         "width": 1,
+         "items": [
+           {
+             "type": "Image",
+             "url": "https://picsum.photos/300?image=882",
+             "size": "auto"
+           }
+         ]
+       }
+     ]
+   }
+ ],
+ "actions": [
+   {
+     "type": "Action.OpenUrl",
+     "title": "More Info",
+     "url": `${dataName[1].url}`
+   }
+ ]
+};
 
+const CARD_TROIS = {
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+"type": "AdaptiveCard",
+"version": "1.0",
+"body": [
+ {
+   "speak": "Tom's Pie is a Pizza restaurant which is rated 9.3 by customers.",
+   "type": "ColumnSet",
+   "columns": [
+     {
+       "type": "Column",
+       "width": 2,
+       "items": [
+         {
+           "type": "TextBlock",
+           "text": `${user.food}`
+         },
+         {
+           "type": "TextBlock",
+           "text": `${dataName[2].name}`,
+           "weight": "bolder",
+           "size": "extraLarge",
+           "spacing": "none"
+         },
+         {
+           "type": "TextBlock",
+           "text": `${dataName[2].telephone}`,
+           "isSubtle": true,
+           "spacing": "none"
+         },
+         {
+           "type": "TextBlock",
+           "text": `${dataName[2].address.neighborhood}`,
+           "size": "small",
+           "spacing": "none"
+         },
+         {
+           "type": "TextBlock",
+           "text": `${dataName[2].address.postalCode} ${dataName[2].address.addressLocality} ${dataName[2].address.addressRegion}`,
+           "size": "small",
+           "wrap": true
+         }
+       ]
+     },
+     {
+       "type": "Column",
+       "width": 1,
+       "items": [
+         {
+           "type": "Image",
+           "url": "https://picsum.photos/300?image=882",
+           "size": "auto"
+         }
+       ]
+     }
+   ]
+ }
+],
+"actions": [
+ {
+   "type": "Action.OpenUrl",
+   "title": "More Info",
+   "url": `${dataName[2].url}`
+ }
+]
+};
+  // Send adaptive card.
+  //await step.context.sendActivity({
+  //      text: 'Here is an Adaptive Card:',
+  //       attachments: [CardFactory.adaptiveCard(CARDS)]
+  //});
 
-    //  init message object
-    let messageWithCarouselOfCards = MessageFactory.carousel([
-    //  CardFactory.heroCard(`${dataName[0].name}`, `${dataName[0].telephone}`,  `${dataName[0].address.neighborhood}`, `${dataName[0].address.postalCode}`, `${dataName[0].address.addressLocality}`, [`${dataName[0].url}`]),
-      CardFactory.heroCard(`${dataName[0].name}`, [`${dataName[0].telephone}`], [`${dataName[0].url}`]),
-      CardFactory.heroCard(`${dataName[1].name}`, [`${dataName[1].telephone}`], [`${dataName[1].url}`]),
-      CardFactory.heroCard(`${dataName[2].name}`, [`${dataName[2].telephone}`], [`${dataName[2].url}`]),
-      CardFactory.heroCard(`${dataName[3].name}`, [`${dataName[3].telephone}`], [`${dataName[3].url}`]),
-      CardFactory.heroCard(`${dataName[4].name}`, [`${dataName[4].telephone}`], [`${dataName[4].url}`])
+  //  init message object
+  let messageWithCarouselOfCards = MessageFactory.carousel([
+  //  CardFactory.heroCard(`${dataName[0].name}`, `${dataName[0].telephone}`,  `${dataName[0].address.neighborhood}`, `${dataName[0].address.postalCode}`, `${dataName[0].address.addressLocality}`, [`${dataName[0].url}`]),
+    CardFactory.adaptiveCard(CARD_UN),
+    CardFactory.adaptiveCard(CARD_DEUX),
+    CardFactory.adaptiveCard(CARD_TROIS),
     ]);
-
-    await step.context.sendActivity(messageWithCarouselOfCards);
+  await step.context.sendActivity(messageWithCarouselOfCards);
 
     return await step.endDialog();
 }
@@ -500,10 +699,11 @@ let response_handler = function (response) {
         let body_ = JSON.parse (body);
         let body__ = JSON.stringify (body_, null, '  ');
 
-      console.log(body_.places.value);
+      //console.log(body_.places.value);
 
         for(var i in body_.places.value) {
-            console.log(body_.places.value[i]);
+            //console.log(body_.places.value[i]);
+            console.log(body_.places.value[i].name);
            dataName.push(body_.places.value[i]);
         }
 
