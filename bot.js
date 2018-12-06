@@ -95,16 +95,12 @@ class LuisBot {
         ]));
     }
 
-
-
-
     /**
      * Every conversation turn calls this method.
      * There are no dialogs used, since it's "single turn" processing, meaning a single request and
      * response, with no stateful conversation.
      * @param {TurnContext} turnContext A TurnContext instance, containing all the data needed for processing the conversation turn.
      */
-
      async onTurn(turnContext) {
      if (turnContext.activity.type === ActivityTypes.Message) {
          // Create a dialog context object.
@@ -144,15 +140,18 @@ class LuisBot {
 /***********************************************************************************************************************/
 /***********************************************************************************************************************/
 
-
-// This step in the dialog prompts the user for their name.
+/**
+  * This step in the dialog prompts the user for their name.
+  * @param step A step instance, containing all the data needed for processing the conversation turn.
+  */
 async promptForName(step) {
-
-
-    return await step.prompt(NAME_PROMPT, `What is your name, human?`);
+  return await step.prompt(NAME_PROMPT, `What is your name, human?`);
 }
 
-// This step in the dialog prompts the user for their name.
+/**
+  * This step in the dialog prompts the user for their name.
+  * @param step A step instance, containing all the data needed for processing the conversation turn.
+  */
 async confirmNamePrompt(step) {
   const user = await this.userProfile.get(step.context, {});
   user.name = step.result;
@@ -161,27 +160,37 @@ async confirmNamePrompt(step) {
     return await step.beginDialog(WHICH_FOOD);
 }
 
-// This step captures the user's name, then prompts whether or not to collect an age.
+/**
+  * This step in the dialog shows options for knows if the user knows what want to eat
+  * @param step A step instance, containing all the data needed for processing the conversation turn.
+  */
 async confirmFoodPrompt(step) {
     const user = await this.userProfile.get(step.context, {});
     await step.prompt(CONFIRM_PROMPT, `Hey ${ user.name }! Do you know what you want to eat ?`, ['yes', 'no']);
 }
 
-// This step checks the user's response - if yes, the bot will proceed to prompt for age.
-// Otherwise, the bot will skip the age step.
+/**
+  * This step checks the user's response - if yes, the bot will proceed to do other questions.
+  * Otherwise retry
+  * @param step A step instance, containing all the data needed for processing the conversation turn.
+  */
 async promptForFood(step) {
     if (step.result && step.result.value === 'yes') {
-        return await step.prompt(FOOD_PROMPT, `Tell me what kind of food would you prefer ?`,
-            {
-                retryPrompt: 'Sorry, I do not anderstand or say cancel.'
-            }
-        );
+
+      return await step.prompt(FOOD_PROMPT, `Tell me what kind of food would you prefer ?`,
+      {
+        retryPrompt: 'Sorry, I do not understand or say cancel.'
+      }
+      );
     } else {
         return await step.next(-1);
     }
 }
 
-// This step captures the user's age.
+/**
+  * This step checks the user's response about what kind of food wants with LUIS
+  * @param step A step instance, containing all the data needed for processing the conversation turn.
+  */
 async captureFood(step) {
     const user = await this.userProfile.get(step.context, {});
 
@@ -238,7 +247,11 @@ async captureFood(step) {
     //return await step.endDialog();
 }
 
-// This step displays the captured information back to the user.
+
+/**
+  * This step shows food options for the user
+  * @param step A step instance, containing all the data needed for processing the conversation turn.
+  */
 async displayFoodChoice(step) {
     const user = await this.userProfile.get(step.context, {});
     if (user.food) {
@@ -265,7 +278,10 @@ async displayFoodChoice(step) {
     //return await step.endDialog();
 }
 
-// This step captures the user's age.
+/**
+  * This step captures the food price the users wants
+  * @param step A step instance, containing all the data needed for processing the conversation turn.
+  */
 async capturePrice(step) {
     const user = await this.userProfile.get(step.context, {});
 
@@ -291,7 +307,10 @@ async capturePrice(step) {
     await step.context.sendActivity(reply);
 }
 
-// This step displays the captured information back to the user.
+/**
+  * This step shows the food price the users wants
+  * @param step A step instance, containing all the data needed for processing the conversation turn.
+  */
 async displayPriceChoice(step) {
     const user = await this.userProfile.get(step.context, {});
 
@@ -311,14 +330,20 @@ async displayPriceChoice(step) {
     return await step.beginDialog(WHICH_LOCALISATION);
 }
 
-// This step captures the restaurant's localisation, then prompts whether or not to collect a localisation.
+/**
+  * This step captures the restaurant's localisation, then prompts whether or not to collect a localisation.
+  * @param step A step instance, containing all the data needed for processing the conversation turn.
+  */
 async confirmLocalisationPrompt(step) {
 
     await step.prompt(CONFIRM_LOCALISATION_PROMPT, 'Do you know where you want to eat ?', ['yes', 'no']);
 }
 
-// This step checks the user's response - if yes, the bot will proceed to prompt for localisation.
-// Otherwise, the bot will skip the localisation step.
+/**
+  * This step checks the user's response - if yes, the bot will proceed to prompt for localisation.
+  * Otherwise, the bot will skip the localisation step.
+  * @param step A step instance, containing all the data needed for processing the conversation turn.
+  */
 async promptForLocalisation(step) {
     if (step.result && step.result.value === 'yes') {
         return await step.prompt(LOCALISATION_PROMPT, `Tell me where would you prefer to eat ?`,
@@ -331,7 +356,10 @@ async promptForLocalisation(step) {
     }
 }
 
-// This step captures the restaurant's localisation.
+/**
+  * This step captures the restaurant's localisation.
+  * @param step A step instance, containing all the data needed for processing the conversation turn.
+  */
 async captureLocalisation(step) {
     const user = await this.userProfile.get(step.context, {});
 
@@ -388,12 +416,20 @@ async captureLocalisation(step) {
     //return await step.endDialog();
 }
 
-// This step displays the captured information back to the user.
+/**
+  * This step displays the captured information back to the user.
+  * @param step A step instance, containing all the data needed for processing the conversation turn.
+  */
 async displayLocalisationChoice(step) {
+    
     const user = await this.userProfile.get(step.context, {});
+    
     if (user.localisation) {
-        await step.context.sendActivity(`${ user.name } you would like to eat : ${ user.food } where it's ${ user.localisation } from you`);
+
+      await step.context.sendActivity(`${ user.name } you would like to eat : ${ user.food } where it's ${ user.localisation } from you`);
+    
     } else {
+      
       const user = await this.userProfile.get(step.context, {});
 
       //await step.context.sendActivity(`[${ step.context.activity.text }]-type activity detected.`);
@@ -413,42 +449,43 @@ async displayLocalisationChoice(step) {
       console.log('user.food  1 = ' + `${ user.food }`);
       console.log('user.localisation 2 = ' + user.localisation);
     }
+    
+    let mkt = 'en-US';
+    //console.log('user.food  = ' + `${ user.food }` );
+    //console.log('user.localisation = ' + user.localisation);
+    let q = `${ user.food } restaurant ${ user.localisation } ${ user.price }`;
+          
+    console.log('q = ' + q);
 
+    let params = '?mkt=' + mkt + '&q=' + encodeURI(q);
 
-          let mkt = 'en-US';
-          //console.log('user.food  = ' + `${ user.food }` );
-          //console.log('user.localisation = ' + user.localisation);
-          let q = `${ user.food } restaurant ${ user.localisation } ${ user.price }`;
-        console.log('q = ' + q);
+    let request_params = {
+       method : 'GET',
+       hostname : host,
+       path : path + params,
+       headers : {
+        'Ocp-Apim-Subscription-Key' : subscriptionKey,
+       }
+    };
 
-          let params = '?mkt=' + mkt + '&q=' + encodeURI(q);
+    let req = https.request (request_params, response_handler);
+    req.end ();
 
-          let request_params = {
-              method : 'GET',
-              hostname : host,
-              path : path + params,
-              headers : {
-                  'Ocp-Apim-Subscription-Key' : subscriptionKey,
-              }
-          };
-
-          let req = https.request (request_params, response_handler);
-          req.end ();
-
-          await someTimeConsumingThing();
+    await someTimeConsumingThing();
 
     return await step.replaceDialog(END_OF_DIALOG);
 }
 
 // This step displays the captured information back to the user.
 async displayProfile(step) {
-    const user = await this.userProfile.get(step.context, {});
+  
+  const user = await this.userProfile.get(step.context, {});
 
-    const CARD_UN = {
-      "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-   "type": "AdaptiveCard",
-   "version": "1.0",
-   "body": [
+  const CARD_UN = {
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.0",
+  "body": [
      {
        "speak": "Tom's Pie is a Pizza restaurant which is rated 9.3 by customers.",
        "type": "ColumnSet",
@@ -650,27 +687,25 @@ const CARD_TROIS = {
   //       attachments: [CardFactory.adaptiveCard(CARDS)]
   //});
 
-  //  init message object
-  let messageWithCarouselOfCards = MessageFactory.carousel([
-  //  CardFactory.heroCard(`${dataName[0].name}`, `${dataName[0].telephone}`,  `${dataName[0].address.neighborhood}`, `${dataName[0].address.postalCode}`, `${dataName[0].address.addressLocality}`, [`${dataName[0].url}`]),
+    let messageWithCarouselOfCards = MessageFactory.carousel([
+     //  CardFactory.heroCard(`${dataName[0].name}`, `${dataName[0].telephone}`,  `${dataName[0].address.neighborhood}`, `${dataName[0].address.postalCode}`, `${dataName[0].address.addressLocality}`, [`${dataName[0].url}`]),
     CardFactory.adaptiveCard(CARD_UN),
     CardFactory.adaptiveCard(CARD_DEUX),
     CardFactory.adaptiveCard(CARD_TROIS),
     ]);
-  await step.context.sendActivity(messageWithCarouselOfCards);
-
+    await step.context.sendActivity(messageWithCarouselOfCards);
+    await step.context.sendActivity(`${ user.name } thanks for contact me, i hope i've helped you!`);
+    
     return await step.endDialog();
 }
-
-
 
 }
 
 module.exports.LuisBot = LuisBot;
 
-// **********************************************
-// *** Démarrage rapide pour l’API Recherche d’entités Bing avec Node.js ***
-// **********************************************
+/**********************************************************************
+** Démarrage rapide pour l’API Recherche d’entités Bing avec Node.js **
+***********************************************************************/
 
 'use strict';
 
@@ -685,8 +720,6 @@ let path = '/bing/v7.0/entities';
 
 //let q = 'italian restaurant San Francisco';
 //let q = `${ user.food } restaurant ${ user.localisation } `;
-
-
 //let params = '?mkt=' + mkt + '&q=' + encodeURI(q);
 
 let response_handler = function (response) {
