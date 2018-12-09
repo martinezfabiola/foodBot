@@ -204,18 +204,18 @@ async captureFood(step) {
     if (step.result !== -1) {
 
         if (topIntent.intent == 'ChooseTypeOfFood') {
-            user.food = topEntity.entity;
-            await this.userProfile.set(step.context, user);
+          user.food = topEntity.entity;
+          await this.userProfile.set(step.context, user);
 
-            //await step.context.sendActivity(`Entity: ${topEntity.entity}`);
-            await step.context.sendActivity(`I'm going to find the restaurant to eat : ${topEntity.entity}`);
-            //return await step.next();
+          //await step.context.sendActivity(`Entity: ${topEntity.entity}`);
+          await step.context.sendActivity(`I'm going to find the restaurant to eat : ${topEntity.entity}`);
+          //return await step.next();
         }
         else {
-            user.food = step.result;
-            await this.userProfile.set(step.context, user);
-            await step.context.sendActivity(`Sorry, I do not anderstand or say cancel.`);
-            return await step.replaceDialog(WHICH_FOOD);
+          user.food = step.result;
+          await this.userProfile.set(step.context, user);
+          await step.context.sendActivity(`Sorry, I do not understand or say cancel.`);
+          return await step.replaceDialog(WHICH_FOOD);
         }
 
         // await step.context.sendActivity(`I will remember that you want this kind of food :  ${ step.result } `);
@@ -267,9 +267,13 @@ async displayFoodChoice(step) {
       }  else if (step.context.activity.text == 2) {
         user.food = "Chinese";
         await this.userProfile.set(step.context, user);
-      } else {
+      } else if (step.context.activity.text == 3) {
         user.food = "American";
         await this.userProfile.set(step.context, user);
+      }else {
+        await this.userProfile.set(step.context, user);
+        await step.context.sendActivity(`Sorry, I do not understand, please try again.`);
+        return await step.beginDialog(WHICH_FOOD);
       }
 
       await step.context.sendActivity(`Your name is ${ user.name } and you would like this kind of food : ${ user.food }.`);
@@ -320,9 +324,13 @@ async displayPriceChoice(step) {
     }  else if (step.context.activity.text == 2) {
       user.price = "";
       await this.userProfile.set(step.context, user);
-    } else {
+    } else if (step.context.activity.text == 3) {
       user.price = "expensive";
       await this.userProfile.set(step.context, user);
+    }else {
+      await this.userProfile.set(step.context, user);
+      await step.context.sendActivity(`Sorry, I do not understand, please try again.`);
+      return await step.beginDialog(WHICH_PRICE);
     }
 
     await step.context.sendActivity(`${ user.name } you would like this kind of food : ${ user.food } and for a ${ user.price }`);
@@ -348,7 +356,7 @@ async promptForLocalisation(step) {
     if (step.result && step.result.value === 'yes') {
         return await step.prompt(LOCALISATION_PROMPT, `Tell me where would you prefer to eat ?`,
             {
-                retryPrompt: 'Sorry, I do not anderstand or say cancel.'
+                retryPrompt: 'Sorry, I do not understand or say cancel.'
             }
         );
     } else {
@@ -383,7 +391,7 @@ async captureLocalisation(step) {
         else {
             //user.localisation = step.result;
             //await this.userProfile.set(step.context, user);
-            await step.context.sendActivity(`Sorry, I do not anderstand or say cancel.`);
+            await step.context.sendActivity(`Sorry, I do not understand or say cancel.`);
             return await step.replaceDialog(WHICH_LOCALISATION);
         }
 
@@ -440,9 +448,13 @@ async displayLocalisationChoice(step) {
       }  else if (step.context.activity.text == 2) {
         user.localisation = "New York";
         await this.userProfile.set(step.context, user);
-      } else {
+      } else if (step.context.activity.text == 3) {
         user.localisation = "Miami";
         await this.userProfile.set(step.context, user);
+      }else {
+        await this.userProfile.set(step.context, user);
+        await step.context.sendActivity(`Sorry, I do not understand, please try again.`);
+        return await step.beginDialog(WHICH_LOCALISATION);
       }
 
       await step.context.sendActivity(`${ user.name } you would like to eat : ${ user.food } where it's located : ${ user.localisation }`);
@@ -481,7 +493,15 @@ async displayProfile(step) {
   
   const user = await this.userProfile.get(step.context, {});
 
-  const CARD_UN = {
+  // Send adaptive card.
+  //await step.context.sendActivity({
+  //      text: 'Here is an Adaptive Card:',
+  //       attachments: [CardFactory.adaptiveCard(CARDS)]
+  //});
+
+  if(dataName.length >= 3){
+
+    const CARD_UN = {
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "type": "AdaptiveCard",
   "version": "1.0",
@@ -681,11 +701,6 @@ const CARD_TROIS = {
  }
 ]
 };
-  // Send adaptive card.
-  //await step.context.sendActivity({
-  //      text: 'Here is an Adaptive Card:',
-  //       attachments: [CardFactory.adaptiveCard(CARDS)]
-  //});
 
     let messageWithCarouselOfCards = MessageFactory.carousel([
      //  CardFactory.heroCard(`${dataName[0].name}`, `${dataName[0].telephone}`,  `${dataName[0].address.neighborhood}`, `${dataName[0].address.postalCode}`, `${dataName[0].address.addressLocality}`, [`${dataName[0].url}`]),
@@ -695,7 +710,231 @@ const CARD_TROIS = {
     ]);
     await step.context.sendActivity(messageWithCarouselOfCards);
     await step.context.sendActivity(`${ user.name } thanks for contact me, i hope i've helped you!`);
-    
+  
+  } else if(dataName.length ===2){
+
+    const CARD_UN = {
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.0",
+  "body": [
+     {
+       "speak": "Tom's Pie is a Pizza restaurant which is rated 9.3 by customers.",
+       "type": "ColumnSet",
+       "columns": [
+         {
+           "type": "Column",
+           "width": 2,
+           "items": [
+             {
+               "type": "TextBlock",
+               "text": `${user.food}`
+             },
+             {
+               "type": "TextBlock",
+               "text": `${dataName[0].name}`,
+               "weight": "bolder",
+               "size": "extraLarge",
+               "spacing": "none"
+             },
+             {
+               "type": "TextBlock",
+               "text": `${dataName[0].telephone}`,
+               "isSubtle": true,
+               "spacing": "none"
+             },
+             {
+               "type": "TextBlock",
+               "text": `${dataName[0].address.neighborhood}`,
+               "size": "small",
+               "spacing": "none"
+             },
+             {
+               "type": "TextBlock",
+               "text": `${dataName[0].address.postalCode} ${dataName[0].address.addressLocality} ${dataName[0].address.addressRegion}`,
+               "size": "small",
+               "wrap": true
+             }
+           ]
+         },
+         {
+           "type": "Column",
+           "width": 1,
+           "items": [
+             {
+               "type": "Image",
+               "url": "https://picsum.photos/300?image=882",
+               "size": "auto"
+             }
+           ]
+         }
+       ]
+     }
+   ],
+   "actions": [
+     {
+       "type": "Action.OpenUrl",
+       "title": "More Info",
+       "url": `${dataName[0].url}`
+     }
+   ]
+  };
+
+  const CARD_DEUX = {
+    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+ "type": "AdaptiveCard",
+ "version": "1.0",
+ "body": [
+   {
+     "speak": "Tom's Pie is a Pizza restaurant which is rated 9.3 by customers.",
+     "type": "ColumnSet",
+     "columns": [
+       {
+         "type": "Column",
+         "width": 2,
+         "items": [
+           {
+             "type": "TextBlock",
+             "text": `${user.food}`
+           },
+           {
+             "type": "TextBlock",
+             "text": `${dataName[1].name}`,
+             "weight": "bolder",
+             "size": "extraLarge",
+             "spacing": "none"
+           },
+           {
+             "type": "TextBlock",
+             "text": `${dataName[1].telephone}`,
+             "isSubtle": true,
+             "spacing": "none"
+           },
+           {
+             "type": "TextBlock",
+             "text": `${dataName[1].address.neighborhood}`,
+             "size": "small",
+             "spacing": "none"
+           },
+           {
+             "type": "TextBlock",
+             "text": `${dataName[1].address.postalCode} ${dataName[1].address.addressLocality} ${dataName[1].address.addressRegion}`,
+             "size": "small",
+             "wrap": true
+           }
+         ]
+       },
+       {
+         "type": "Column",
+         "width": 1,
+         "items": [
+           {
+             "type": "Image",
+             "url": "https://picsum.photos/300?image=882",
+             "size": "auto"
+           }
+         ]
+       }
+     ]
+   }
+ ],
+ "actions": [
+   {
+     "type": "Action.OpenUrl",
+     "title": "More Info",
+     "url": `${dataName[1].url}`
+   }
+ ]
+};
+    let messageWithCarouselOfCards = MessageFactory.carousel([
+     //  CardFactory.heroCard(`${dataName[0].name}`, `${dataName[0].telephone}`,  `${dataName[0].address.neighborhood}`, `${dataName[0].address.postalCode}`, `${dataName[0].address.addressLocality}`, [`${dataName[0].url}`]),
+    CardFactory.adaptiveCard(CARD_UN),
+    CardFactory.adaptiveCard(CARD_DEUX),
+    ]);
+    await step.context.sendActivity(messageWithCarouselOfCards);
+    await step.context.sendActivity(`${ user.name } thanks for contact me, i hope i've helped you!`);
+  
+  } else if(dataName.length ===1){
+
+    const CARD_UN = {
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.0",
+  "body": [
+     {
+       "speak": "Tom's Pie is a Pizza restaurant which is rated 9.3 by customers.",
+       "type": "ColumnSet",
+       "columns": [
+         {
+           "type": "Column",
+           "width": 2,
+           "items": [
+             {
+               "type": "TextBlock",
+               "text": `${user.food}`
+             },
+             {
+               "type": "TextBlock",
+               "text": `${dataName[0].name}`,
+               "weight": "bolder",
+               "size": "extraLarge",
+               "spacing": "none"
+             },
+             {
+               "type": "TextBlock",
+               "text": `${dataName[0].telephone}`,
+               "isSubtle": true,
+               "spacing": "none"
+             },
+             {
+               "type": "TextBlock",
+               "text": `${dataName[0].address.neighborhood}`,
+               "size": "small",
+               "spacing": "none"
+             },
+             {
+               "type": "TextBlock",
+               "text": `${dataName[0].address.postalCode} ${dataName[0].address.addressLocality} ${dataName[0].address.addressRegion}`,
+               "size": "small",
+               "wrap": true
+             }
+           ]
+         },
+         {
+           "type": "Column",
+           "width": 1,
+           "items": [
+             {
+               "type": "Image",
+               "url": "https://picsum.photos/300?image=882",
+               "size": "auto"
+             }
+           ]
+         }
+       ]
+     }
+   ],
+   "actions": [
+     {
+       "type": "Action.OpenUrl",
+       "title": "More Info",
+       "url": `${dataName[0].url}`
+     }
+   ]
+  };
+
+    let messageWithCarouselOfCards = MessageFactory.carousel([
+     //  CardFactory.heroCard(`${dataName[0].name}`, `${dataName[0].telephone}`,  `${dataName[0].address.neighborhood}`, `${dataName[0].address.postalCode}`, `${dataName[0].address.addressLocality}`, [`${dataName[0].url}`]),
+    CardFactory.adaptiveCard(CARD_UN),
+    ]);
+    await step.context.sendActivity(messageWithCarouselOfCards);
+    await step.context.sendActivity(`${ user.name } thanks for contact me, i hope i've helped you!`);
+  
+  }else{
+    await step.context.sendActivity(`Sorry ${ user.name }, I could not find any restaurant. Please try again`);
+    return await step.replaceDialog(WHICH_FOOD);
+  }
+
     return await step.endDialog();
 }
 
@@ -732,13 +971,15 @@ let response_handler = function (response) {
         let body_ = JSON.parse (body);
         let body__ = JSON.stringify (body_, null, '  ');
 
-      //console.log(body_.places.value);
-
+      console.log(body_.places);
+      if (body_.places.value !== 0){
         for(var i in body_.places.value) {
-            //console.log(body_.places.value[i]);
-            console.log(body_.places.value[i].name);
-           dataName.push(body_.places.value[i]);
+          // console.log(body_.places.value[i]);
+          // console.log(body_.places.value[i].name);
+          dataName.push(body_.places.value[i]);
+          console.log(dataName.length);
         }
+      }
 
     });
     response.on ('error', function (e) {
