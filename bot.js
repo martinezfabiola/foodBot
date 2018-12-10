@@ -295,9 +295,9 @@ async capturePrice(step) {
 
     // // build buttons to display.
     const buttons = [
-    { type: ActionTypes.ImBack, title: '1. *', value: '1' },
-    { type: ActionTypes.ImBack, title: '2. **', value: '2' },
-    { type: ActionTypes.ImBack, title: '3. ***', value: '3' }
+    { type: ActionTypes.ImBack, title: '1. $', value: '1' },
+    { type: ActionTypes.ImBack, title: '2. $$', value: '2' },
+    { type: ActionTypes.ImBack, title: '3. I do not care', value: '3' }
     ];
 
     // // construct hero card.
@@ -322,10 +322,10 @@ async displayPriceChoice(step) {
       user.price = "cheap";
       await this.userProfile.set(step.context, user);
     }  else if (step.context.activity.text == 2) {
-      user.price = "";
+      user.price = "expensive";
       await this.userProfile.set(step.context, user);
     } else if (step.context.activity.text == 3) {
-      user.price = "expensive";
+      user.price = "";
       await this.userProfile.set(step.context, user);
     }else {
       await this.userProfile.set(step.context, user);
