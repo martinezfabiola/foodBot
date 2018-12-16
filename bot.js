@@ -125,7 +125,7 @@ class LuisBot {
      } else if (turnContext.activity.type === ActivityTypes.ConversationUpdate &&
          turnContext.activity.recipient.id !== turnContext.activity.membersAdded[0].id) {
          // If the Activity is a ConversationUpdate, send a greeting message to the user.
-         await turnContext.sendActivity('Welcome to our FoodBot ! Send me a message and I will try to predict your intent to find a restaurant. Say Hi !');
+         await turnContext.sendActivity('Welcome to our FoodBot 🤖! Send me a message and I will try to predict your intent to find a restaurant. Say Hi! 👋🏻');
      }
 
      // ...
@@ -166,7 +166,7 @@ async confirmNamePrompt(step) {
   */
 async confirmFoodPrompt(step) {
     const user = await this.userProfile.get(step.context, {});
-    await step.prompt(CONFIRM_PROMPT, `Hey ${ user.name }! Do you know what you want to eat ?`, ['yes', 'no']);
+    await step.prompt(CONFIRM_PROMPT, `Hey ${ user.name } 🙂! Do you know what you want to eat ?`, ['yes', 'no']);
 }
 
 /**
@@ -212,7 +212,6 @@ async captureFood(step) {
           //return await step.next();
         }
         else {
-          user.food = step.result;
           await this.userProfile.set(step.context, user);
           await step.context.sendActivity(`Sorry, I do not understand or say cancel.`);
           return await step.replaceDialog(WHICH_FOOD);
@@ -227,9 +226,9 @@ async captureFood(step) {
 
             // // build buttons to display.
             const buttons = [
-            { type: ActionTypes.ImBack, title: '1. European', value: '1' },
-            { type: ActionTypes.ImBack, title: '2. Chinese', value: '2' },
-            { type: ActionTypes.ImBack, title: '3. American/Mexican', value: '3' }
+            { type: ActionTypes.ImBack, title: '1. European 🍝 🍲', value: '1' },
+            { type: ActionTypes.ImBack, title: '2. Chinese 🍜 🍚', value: '2' },
+            { type: ActionTypes.ImBack, title: '3. American 🍔 🍟', value: '3' }
             ];
 
             // // construct hero card.
@@ -295,8 +294,8 @@ async capturePrice(step) {
 
     // // build buttons to display.
     const buttons = [
-    { type: ActionTypes.ImBack, title: '1. $', value: '1' },
-    { type: ActionTypes.ImBack, title: '2. $$', value: '2' },
+    { type: ActionTypes.ImBack, title: '1. 💰', value: '1' },
+    { type: ActionTypes.ImBack, title: '2. 💰💰', value: '2' },
     { type: ActionTypes.ImBack, title: '3. I do not care', value: '3' }
     ];
 
@@ -354,7 +353,7 @@ async confirmLocalisationPrompt(step) {
   */
 async promptForLocalisation(step) {
     if (step.result && step.result.value === 'yes') {
-        return await step.prompt(LOCALISATION_PROMPT, `Tell me where would you prefer to eat ?`,
+        return await step.prompt(LOCALISATION_PROMPT, `Tell me where would you prefer to eat 📍?`,
             {
                 retryPrompt: 'Sorry, I do not understand or say cancel.'
             }
@@ -390,7 +389,7 @@ async captureLocalisation(step) {
         }
         else {
             //user.localisation = step.result;
-            //await this.userProfile.set(step.context, user);
+            await this.userProfile.set(step.context, user);
             await step.context.sendActivity(`Sorry, I do not understand or say cancel.`);
             return await step.replaceDialog(WHICH_LOCALISATION);
         }
@@ -411,7 +410,7 @@ async captureLocalisation(step) {
 
             // // construct hero card.
             const card = CardFactory.heroCard('', undefined,
-            buttons, { text: 'Where do you want to eat ?' });
+            buttons, { text: 'Where do you want to eat 📍?' });
 
             // // add card to Activity.
             reply.attachments = [card];
@@ -458,8 +457,8 @@ async displayLocalisationChoice(step) {
       }
 
       await step.context.sendActivity(`${ user.name } you would like to eat : ${ user.food } where it's located : ${ user.localisation }`);
-      console.log('user.food  1 = ' + `${ user.food }`);
-      console.log('user.localisation 2 = ' + user.localisation);
+      // console.log('user.food  1 = ' + `${ user.food }`);
+      // console.log('user.localisation 2 = ' + user.localisation);
     }
     
     let mkt = 'en-US';
@@ -467,7 +466,7 @@ async displayLocalisationChoice(step) {
     //console.log('user.localisation = ' + user.localisation);
     let q = `${ user.food } restaurant ${ user.localisation } ${ user.price }`;
           
-    console.log('q = ' + q);
+    // console.log('q = ' + q);
 
     let params = '?mkt=' + mkt + '&q=' + encodeURI(q);
 
@@ -551,7 +550,7 @@ async displayProfile(step) {
            "items": [
              {
                "type": "Image",
-               "url": "https://picsum.photos/300?image=882",
+               "url": "/Users/fabiolamartinez/foodBot/logo.png",
                "size": "auto"
              }
            ]
@@ -618,7 +617,7 @@ async displayProfile(step) {
          "items": [
            {
              "type": "Image",
-             "url": "https://picsum.photos/300?image=882",
+             "url": "/Users/fabiolamartinez/foodBot/logo.png",
              "size": "auto"
            }
          ]
@@ -685,7 +684,7 @@ const CARD_TROIS = {
        "items": [
          {
            "type": "Image",
-           "url": "https://picsum.photos/300?image=882",
+           "url": "/Users/fabiolamartinez/foodBot/logo.png",
            "size": "auto"
          }
        ]
@@ -763,7 +762,7 @@ const CARD_TROIS = {
            "items": [
              {
                "type": "Image",
-               "url": "https://picsum.photos/300?image=882",
+               "url": "/Users/fabiolamartinez/foodBot/logo.png",
                "size": "auto"
              }
            ]
@@ -830,7 +829,7 @@ const CARD_TROIS = {
          "items": [
            {
              "type": "Image",
-             "url": "https://picsum.photos/300?image=882",
+             "url": "/Users/fabiolamartinez/foodBot/logo.png",
              "size": "auto"
            }
          ]
@@ -906,7 +905,7 @@ const CARD_TROIS = {
            "items": [
              {
                "type": "Image",
-               "url": "https://picsum.photos/300?image=882",
+               "url": "/Users/fabiolamartinez/foodBot/logo.png",
                "size": "auto"
              }
            ]
@@ -928,7 +927,7 @@ const CARD_TROIS = {
     CardFactory.adaptiveCard(CARD_UN),
     ]);
     await step.context.sendActivity(messageWithCarouselOfCards);
-    await step.context.sendActivity(`${ user.name } thanks for contact me, i hope i've helped you!`);
+    await step.context.sendActivity(`${ user.name } thanks for contact me, i hope i've helped you! 😊`);
   
   }else{
     await step.context.sendActivity(`Sorry ${ user.name }, I could not find any restaurant. Please try again`);
@@ -952,9 +951,9 @@ var dataName = [];
 let https = require ('https');
 
 // Replace the subscriptionKey string value with your valid subscription key.
-let subscriptionKey = '04a1e0de58694f71a336733e87b4d95b';
+let subscriptionKey = 'f07ef22847634a5e9ce10b788de5afac';
 
-let host = 'api.cognitive.microsoft.com';
+let host = 'westus.api.cognitive.microsoft.com';
 let path = '/bing/v7.0/entities';
 
 //let q = 'italian restaurant San Francisco';
@@ -971,13 +970,12 @@ let response_handler = function (response) {
         let body_ = JSON.parse (body);
         let body__ = JSON.stringify (body_, null, '  ');
 
-      console.log(body_.places);
       if (body_.places.value !== 0){
         for(var i in body_.places.value) {
           // console.log(body_.places.value[i]);
           // console.log(body_.places.value[i].name);
           dataName.push(body_.places.value[i]);
-          console.log(dataName.length);
+          // console.log(dataName.length);
         }
       }
 
